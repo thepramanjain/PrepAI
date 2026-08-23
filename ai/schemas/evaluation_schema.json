@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Evaluation",
+  "description": "TODO: Define the JSON schema for AI evaluation responses",
+  "type": "object",
+  "properties": {
+    "overall_score": { "type": "number", "minimum": 0, "maximum": 100 },
+    "categories": {
+      "type": "object",
+      "additionalProperties": { "type": "number" }
+    },
+    "strengths": { "type": "array", "items": { "type": "string" } },
+    "weaknesses": { "type": "array", "items": { "type": "string" } },
+    "suggestions": { "type": "array", "items": { "type": "string" } }
+  },
+  "required": ["overall_score", "strengths", "weaknesses"]
+}

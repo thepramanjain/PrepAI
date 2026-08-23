@@ -1,0 +1,7 @@
+# TODO: Write production prompt for resume analysis
+# This prompt will instruct Gemini to analyze resume text for:
+# - Skills and technologies
+# - Experience level and gaps
+# - Strengths and areas for improvement
+# - Suggested interview focus areas
+# Output: structured JSON with analysis results

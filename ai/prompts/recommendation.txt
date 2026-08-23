@@ -1,0 +1,7 @@
+# TODO: Write production prompt for generating recommendations
+# This prompt will instruct Gemini to generate personalized recommendations:
+# - Based on interview performance history
+# - Study topics and resources
+# - Practice areas to focus on
+# - Timeline for improvement
+# Output: structured JSON with recommendation plan

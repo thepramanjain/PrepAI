@@ -1,0 +1,8 @@
+# TODO: Write production prompt for evaluating interview responses
+# This prompt will instruct Gemini to evaluate answers based on:
+# - Technical accuracy
+# - Communication clarity
+# - Depth of knowledge
+# - Problem-solving approach
+# - Relevance to the question
+# Output: structured JSON with scores, strengths, weaknesses, and suggestions

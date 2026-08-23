@@ -1,0 +1,15 @@
+# --- Python ---
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# --- Environment ---
+.env
+
+# --- IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo

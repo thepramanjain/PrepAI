@@ -1,0 +1,6 @@
+# TODO: Write production system prompt for the AI interviewer
+# This prompt will define the AI interviewer's persona:
+# - Professional, encouraging, and constructive tone
+# - Interview flow management
+# - When to ask follow-up questions
+# - How to handle unclear or off-topic answers

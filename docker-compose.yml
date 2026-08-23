@@ -1,0 +1,57 @@
+# ==================================================
+# PrepAI — Docker Compose (Development)
+# ==================================================
+# Minimal setup for local development.
+# Not required for initial development — you can run
+# services directly with npm/uvicorn/python.
+# ==================================================
+
+version: "3.8"
+
+services:
+  # --- MongoDB ---
+  mongodb:
+    image: mongo:7
+    container_name: prepai-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    # environment:
+    #   MONGO_INITDB_ROOT_USERNAME: admin
+    #   MONGO_INITDB_ROOT_PASSWORD: password
+
+  # --- Backend (FastAPI) ---
+  # TODO: Uncomment and configure when backend is ready
+  # backend:
+  #   build: ./backend
+  #   container_name: prepai-backend
+  #   ports:
+  #     - "8000:8000"
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - mongodb
+
+  # --- Frontend (React + Vite) ---
+  # TODO: Uncomment and configure when frontend is ready
+  # frontend:
+  #   build: ./frontend
+  #   container_name: prepai-frontend
+  #   ports:
+  #     - "5173:5173"
+  #   env_file:
+  #     - ./frontend/.env
+
+  # --- Voice Agent ---
+  # TODO: Uncomment and configure when voice agent is ready
+  # voice-agent:
+  #   build: ./voice-agent
+  #   container_name: prepai-voice-agent
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - backend
+
+volumes:
+  mongo-data:

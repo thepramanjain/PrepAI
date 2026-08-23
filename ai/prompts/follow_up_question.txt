@@ -1,0 +1,6 @@
+# TODO: Write production prompt for generating follow-up questions
+# This prompt will instruct Gemini to generate follow-up questions based on:
+# - The original question
+# - The user's answer
+# - Areas that need deeper exploration
+# Output: a targeted follow-up question

@@ -1,0 +1,46 @@
+# ==================================================
+# PrepAI Backend — Phase 1 Dependencies
+# ==================================================
+# Install: pip install -r requirements.txt
+# ==================================================
+
+# --- Web Framework ---
+fastapi
+uvicorn[standard]
+
+# --- Data Validation & Settings ---
+pydantic
+pydantic-settings
+python-dotenv
+
+# --- Database ---
+pymongo
+
+# --- Testing ---
+pytest
+httpx
+
+# --- Authentication ---
+bcrypt
+PyJWT
+email-validator
+python-multipart
+
+# --- Document Processing (Phase 4) ---
+PyMuPDF
+python-docx
+python-multipart
+
+# --- Generative AI (Phase 5) ---
+google-genai
+
+# --- Voice Interview (Phase 9) ---
+# livekit-api: server-side token generation only.
+# The voice agent (voice-agent/) has its own requirements.txt.
+livekit-api~=0.8
+
+# --- Agentic AI (Phase 10) ---
+# openai: OpenAI-compatible SDK used via OpenRouter base URL.
+# langgraph: State-machine orchestration for multi-agent workflows.
+openai>=1.30.0
+langgraph>=0.2.0

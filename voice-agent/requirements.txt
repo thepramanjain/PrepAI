@@ -1,0 +1,24 @@
+# ==================================================
+# PrepAI Voice Agent — Python Dependencies
+# Phase 9 — LiveKit Agents 1.7 + Gemini Live
+# ==================================================
+# Install:
+#   python -m venv .venv
+#   .venv\Scripts\activate        (Windows)
+#   source .venv/bin/activate     (macOS/Linux)
+#   pip install -r requirements.txt
+# ==================================================
+
+# --- LiveKit Agents + Google (Gemini) plugin ---
+# livekit-agents[google] bundles:
+#   livekit-agents       ~1.7
+#   livekit-plugins-google  (Gemini Live native audio)
+#   livekit               (Python SDK)
+#   silero-vad            (optional VAD, used for barge-in)
+"livekit-agents[google]>=1.7,<2.0"
+
+# --- Configuration ---
+python-dotenv>=1.0
+
+# --- HTTP Client (for backend API calls) ---
+httpx>=0.27

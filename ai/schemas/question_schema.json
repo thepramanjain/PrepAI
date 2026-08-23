@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GeneratedQuestions",
+  "description": "TODO: Define the JSON schema for AI-generated interview questions",
+  "type": "object",
+  "properties": {
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "category": { "type": "string" },
+          "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] },
+          "expected_points": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["text", "category", "difficulty"]
+      }
+    }
+  },
+  "required": ["questions"]
+}

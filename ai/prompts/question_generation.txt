@@ -1,0 +1,8 @@
+# TODO: Write production prompt for interview question generation
+# This prompt will instruct Gemini to generate interview questions based on:
+# - Job role / position
+# - Experience level (junior, mid, senior)
+# - Topics / skills to cover
+# - Number of questions
+# - Difficulty distribution
+# Output: structured JSON array of questions with categories and difficulty levels

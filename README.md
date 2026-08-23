@@ -765,11 +765,15 @@ PrepAI demonstrates practical implementation of:
 
 ---
 
-# 👨💻 Built By
+# 💻 Built By
 
 **Praman Jain**  
 B.Tech — Computer Science & Business Systems  
 MITS Gwalior  
+
+**Prince Saxena**  
+B.Tech — Computer Science & Business Systems  
+MITS Gwalior 
 
 ❤️ Built With: React · FastAPI · Python · MongoDB · Google Gemini · OpenRouter · GPT-4o · LangGraph · LiveKit · Tailwind CSS
 

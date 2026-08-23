@@ -1,184 +1,634 @@
-# PrepAI
+# 🚀 PrepAI
 
-**AI-Powered Mock Interview & Career Preparation Platform**
+### AI-Powered Mock Interview & Career Preparation Platform
 
-PrepAI is an intelligent interview preparation platform that uses Agentic AI to help users practice and improve their interview skills. It generates tailored questions, conducts mock interviews (text and voice), evaluates responses, and provides actionable feedback — powered by a hybrid architecture of Google Gemini and a LangGraph + GPT-4o orchestrator.
+> **Practice smarter. Interview better. Get hired.**
 
----
+PrepAI is a full-stack AI-powered interview preparation platform that simulates realistic technical and behavioral interviews, evaluates candidate responses, tracks performance over time, and provides personalized career guidance.
 
-## Project Overview
-
-PrepAI helps job seekers prepare for interviews by:
-
-- Generating role-specific interview questions using AI.
-- Conducting interactive text-based mock interviews.
-- Conducting voice-based mock interviews using LiveKit Agents.
-- Evaluating responses and providing detailed feedback and scores.
-- Analyzing resumes to generate targeted, personalized questions.
-- Tracking performance over time with visual analytics.
-- Using a team of LangGraph-powered specialized AI Agents (Coach, Interviewer, Evaluator, Analyst) for deep conversational insights.
+Unlike a simple chatbot, PrepAI combines **Google Gemini, OpenRouter GPT-4o, LangGraph, LiveKit, FastAPI, MongoDB, and a modern React frontend** to create a complete AI interview ecosystem.
 
 ---
 
-## Features
+## ✨ What is PrepAI?
 
-| Phase | Feature                          | Status         |
-| ----- | -------------------------------- | -------------- |
-| 1     | Foundation & Setup               | 🟢 Completed   |
-| 2     | User Registration & Login (JWT)  | 🟢 Completed   |
-| 3     | Interview Management System      | 🟢 Completed   |
-| 4     | Resume Upload & Parsing          | 🟢 Completed   |
-| 5     | AI Question Generation (Gemini)  | 🟢 Completed   |
-| 6     | Text-Based Mock Interviews       | 🟢 Completed   |
-| 7     | AI-Powered Evaluation & Feedback | 🟢 Completed   |
-| 8     | Performance Analytics & Charts   | 🟢 Completed   |
-| 9     | Voice-Based Interviews (LiveKit) | 🟢 Completed   |
-| 10    | Agentic AI Workflow (LangGraph)  | 🟢 Completed   |
+Preparing for interviews often means jumping between question banks, coding platforms, resume reviewers, mock interview tools, and performance trackers.
 
----
+**PrepAI brings everything into one platform.**
 
-## Technology Stack
+It can:
 
-### Frontend
-- **React** — UI library
-- **Vite** — Build tool & dev server
-- **Tailwind CSS** — Utility-first CSS framework
-- **shadcn/ui** — Accessible component primitives
-- **React Router** — Client-side routing
-- **Axios** — HTTP client
-- **Recharts** — Charting library
+- 🎯 Generate role-specific interview questions
+- 📄 Analyze resumes and tailor questions accordingly
+- 💬 Conduct interactive text interviews
+- 🎙️ Conduct real-time voice interviews
+- 🧠 Evaluate candidate answers using AI
+- 📊 Track interview performance over time
+- 🔍 Identify strengths and recurring weaknesses
+- 🤖 Use Agentic AI to reason over interview data
+- 🧑💼 Provide personalized career coaching
+- 📈 Recommend areas for improvement
 
-### Backend
-- **Python** — Server language
-- **FastAPI** — Web framework
-- **Pydantic** — Data validation
-- **Motor / PyMongo** — Asynchronous MongoDB driver
-- **JWT** — Authentication tokens
-- **bcrypt / passlib** — Password hashing
+The goal is simple:
 
-### AI & Agents (The Brain)
-- **LangGraph** — Agentic AI orchestrator for multi-agent workflows
-- **OpenRouter (GPT-4o)** — Core intelligence for LangGraph specialized agents
-- **Google Gemini API** — Core generation, fast evaluation, and recommendations
-- **Prompt Engineering** — Centralized instruction sets for specialized agents
-
-### Voice
-- **LiveKit Agents** — Real-time voice interviews
-- **Silero VAD / Deepgram** — Speech-to-Text & Voice Activity Detection integration (via LiveKit)
-
-### Database
-- **MongoDB** — NoSQL Document database
-
-### Resume Processing
-- **PyMuPDF / pdfminer** — PDF text extraction
-- **python-docx** — DOCX parsing
+> **Turn every mock interview into measurable progress.**
 
 ---
 
-## System Architecture
+# 🌟 Key Features
+
+| Feature | Description |
+|---|---|
+| 🔐 Authentication | Secure registration, login and JWT-based authentication |
+| 📄 Resume Intelligence | Upload and parse resumes to personalize interviews |
+| 🎯 AI Question Generation | Generate role, skill and difficulty-specific questions |
+| 💬 Text Interviews | Conduct realistic interactive mock interviews |
+| 🎙️ Voice Interviews | Real-time AI voice interviews using LiveKit |
+| 🧠 AI Evaluation | Analyze answers and generate detailed feedback |
+| 📊 Performance Analytics | Track scores, topics, strengths and weaknesses |
+| 🤖 Agentic AI | LangGraph-powered intelligent workflow |
+| 🧑💼 AI Career Coach | Personalized improvement recommendations |
+| 🔄 Adaptive Interviews | Context-aware follow-up questions |
+| 📈 Progress Tracking | Compare interview performance over time |
+| 📱 Responsive UI | Modern interface designed for desktop and mobile |
+
+---
+
+# 🧠 AI Architecture
+
+PrepAI uses a **hybrid multi-model architecture** instead of relying on a single AI model for everything.
+
+### Google Gemini
+
+Used for interview-specific intelligence:
+
+- Question generation
+- Contextual follow-up questions
+- Interview evaluation
+- Voice interview intelligence
+
+### OpenRouter + GPT-4o
+
+Used for the Agentic AI layer:
+
+- Intent understanding
+- Tool calling
+- Agent orchestration
+- Career coaching
+- Reasoning over existing interview data
+
+### LangGraph
+
+Acts as the orchestration layer that connects specialized agents and tools.
+
+### Python + MongoDB
+
+Handles deterministic operations such as:
+
+- Analytics
+- Score calculations
+- Filtering
+- Aggregation
+- Interview history
+- Persistent data
+
+### LiveKit
+
+Provides the real-time communication layer for voice interviews.
+
+---
+
+# 🏗️ System Architecture
 
 ```text
-┌─────────────┐     REST API     ┌────────────────────────┐     ┌─────────────┐
-│   Frontend   │ ◄──────────────► │        Backend         │ ◄──►│   MongoDB   │
-│  (React +    │                  │       (FastAPI)        │     └─────────────┘
-│   Vite)      │                  │                        │
-└─────────────┘                  │  ┌──────────────────┐  │
-                                  │  │ LangGraph AI     │  │◄──► OpenRouter (GPT-4o)
-                                  │  │ Orchestrator     │  │
-                                  │  └──────────────────┘  │
-                                  │           ▲            │
-                                  │           │            │
-                                  │  ┌──────────────────┐  │
-                                  │  │ Legacy AI Layer  │  │◄──► Google Gemini API
-                                  │  └──────────────────┘  │
-                                  └────────────────────────┘
-                                          ▲
-┌─────────────┐                           │
-│ Voice Agent  │ ◄────────────────────────┘
-│  (LiveKit)   │◄──► LiveKit Server
-└─────────────┘
+                         ┌─────────────────────┐
+                         │       USER          │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │   React + Vite      │
+                         │     Frontend        │
+                         └──────────┬──────────┘
+                                    │
+                              REST API
+                                    │
+                                    ▼
+                     ┌───────────────────────────┐
+                     │       FastAPI Backend     │
+                     │                           │
+                     │  Authentication           │
+                     │  Interview Management     │
+                     │  Resume Processing        │
+                     │  AI Services              │
+                     │  Agentic AI               │
+                     └─────────────┬─────────────┘
+                                   │
+              ┌────────────────────┼────────────────────┐
+              │                    │                    │
+              ▼                    ▼                    ▼
+        ┌───────────┐       ┌────────────┐      ┌─────────────┐
+        │ MongoDB   │       │  Gemini    │      │ LangGraph   │
+        │           │       │    AI      │      │             │
+        └───────────┘       └────────────┘      └──────┬──────┘
+                                                       │
+                                                       ▼
+                                                ┌─────────────┐
+                                                │ OpenRouter  │
+                                                │   GPT-4o    │
+                                                └─────────────┘
+
+
+                    VOICE INTERVIEW PIPELINE
+
+       Candidate Microphone
+                │
+                ▼
+          ┌──────────┐
+          │ LiveKit  │
+          └────┬─────┘
+               │
+               ▼
+        ┌──────────────┐
+        │ Voice Agent  │
+        │   Python     │
+        └──────┬───────┘
+               │
+               ▼
+            Gemini
+               │
+               ▼
+        AI Voice Response
 ```
 
-- **Frontend** communicates with **Backend** via REST APIs.
-- **Backend** handles authentication, database connections, Agentic AI orchestration, and tool execution.
-- **Agentic Layer (Phase 10)** uses LangGraph to route queries between specialized agents (Interviewer, Coach, Evaluator, Analyst) which securely invoke backend tools using the authenticated user's context.
-- **Voice Agent** runs as a separate Python service connecting to LiveKit.
-- All secrets are loaded from environment variables and are never hardcoded.
+## 🤖 Agentic AI Architecture
+
+The Agentic AI layer is powered by LangGraph + OpenRouter GPT-4o.
+
+Instead of allowing an LLM to directly access the database or execute arbitrary operations, PrepAI provides controlled tools.
+
+```text
+                         USER
+                           │
+                           ▼
+                    ┌─────────────┐
+                    │ GPT-4o      │
+                    │ Orchestrator│
+                    └──────┬──────┘
+                           │
+                ┌──────────┼──────────┐
+                │          │          │
+                ▼          ▼          ▼
+          Question      Interview   Evaluation
+            Tool          Tool         Tool
+                │          │          │
+                └──────────┼──────────┘
+                           │
+                           ▼
+                       Analytics
+                          Tools
+                           │
+                           ▼
+                     Career Coach
+                           │
+                           ▼
+                     Final Response
+```
+
+### Specialized capabilities
+
+**🎯 Interview Agent**
+Handles interview flow, questions and contextual follow-ups.
+
+**🧠 Evaluation Agent**
+Works with the existing evaluation engine to analyze completed interviews.
+
+**📊 Analyst**
+Retrieves deterministic performance analytics from MongoDB.
+
+**🧑💼 Career Coach**
+Combines interview feedback, weaknesses, topic performance and historical trends to generate personalized improvement advice.
+
+**🎛️ Orchestrator**
+Determines which tools and workflow should be used for a user's request.
 
 ---
 
-## Project Structure
+# 🔄 Complete Interview Flow
+
+### 1. Create Interview
+```
+User
+ ↓
+Select Role
+ ↓
+Select Experience
+ ↓
+Select Skills
+ ↓
+Select Interview Type
+ ↓
+Select Difficulty
+ ↓
+Optional Resume
+ ↓
+Optional Job Description
+```
+
+### 2. AI Question Generation
+```
+Interview Configuration
+          ↓
+       Gemini
+          ↓
+Role-specific Questions
+          ↓
+MongoDB
+```
+Questions can be tailored using:
+- Role
+- Experience
+- Skills
+- Difficulty
+- Interview type
+- Resume
+- Job description
+
+### 3. Text Interview
+```
+AI Question
+     ↓
+Candidate Answer
+     ↓
+Store Response
+     ↓
+Analyze Context
+     ↓
+Follow-up OR Next Question
+     ↓
+Repeat
+```
+
+### 4. Voice Interview
+```
+Candidate
+    │
+    ▼
+Microphone
+    │
+    ▼
+  LiveKit
+    │
+    ▼
+Voice Agent
+    │
+    ▼
+  Gemini
+    │
+    ▼
+AI Voice Response
+```
+The voice interview maintains the same underlying interview state as the text interview.
+
+### 5. AI Evaluation
+After the interview:
+```
+Questions + Answers
+        ↓
+Gemini Evaluator
+        ↓
+Structured Evaluation
+        ↓
+MongoDB
+```
+The system evaluates:
+- Technical knowledge
+- Communication
+- Problem solving
+- Answer relevance
+- Question-level performance
+- Strengths
+- Weaknesses
+- Topic performance
+- Improvement recommendations
+
+---
+
+# 📊 Performance Analytics
+
+PrepAI calculates analytics from stored interview data.
+
+It tracks:
+- **Overall Performance:** Average score, Best score, Lowest score, Latest score
+- **Total interviews:** Completed interviews
+- **Performance Trends:** Score progression, Category performance, Topic performance, Difficulty performance, Role performance, Interview type performance
+
+### Growth Analysis
+PrepAI compares historical performance to determine whether the candidate is:
+- 📈 Improving
+- ➡️ Stable
+- 📉 Declining
+
+No LLM is required for basic statistical calculations.
+
+---
+
+# 🧑💼 AI Career Coach
+
+The Career Coach is powered by the Agentic AI layer.
+Instead of giving generic advice, it reasons over the candidate's actual performance.
+
+For example:
+**User:** What should I improve?
+```
+GPT-4o
+   ↓
+get_analytics()
+   ↓
+get_weaknesses()
+   ↓
+get_topic_performance()
+   ↓
+LangGraph
+   ↓
+Career Coach
+```
+The system can respond with:
+- Key strengths
+- Priority weaknesses
+- Topics to practice
+- Personalized recommendations
+- Action plan
+- Interview preparation strategy
+
+---
+
+# 🛠️ Technology Stack
+
+### 🎨 Frontend
+- React
+- Vite
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- React Router
+- Axios
+- TanStack Query
+- Recharts
+- Framer Motion
+- Lucide React
+- React Hook Form
+- Zod
+
+### ⚙️ Backend
+- Python
+- FastAPI
+- Pydantic
+- PyMongo / Motor
+- JWT Authentication
+- bcrypt / Passlib
+
+### 🧠 AI & Agentic Layer
+**Google Gemini**
+Used for:
+- Question generation
+- Follow-up questions
+- Interview intelligence
+- AI evaluation
+- Voice interview intelligence
+
+**OpenRouter**
+Used as the LLM gateway for:
+- GPT-4o
+- Agentic reasoning
+- Tool calling
+
+**LangGraph**
+Used for:
+- Agent orchestration
+- Stateful workflows
+- Conditional routing
+- Tool execution
+- Multi-step reasoning
+
+### 🎙️ Voice
+- LiveKit
+- LiveKit Agents
+- Python Voice Agent
+- Speech-to-Text / Voice Activity Detection through the configured LiveKit pipeline
+
+### 🗄️ Database
+**MongoDB**
+Stores:
+- Users
+- Interviews
+- Questions
+- Responses
+- Resumes
+- Feedback
+- Voice sessions
+- Transcripts
+
+### 📄 Resume Processing
+- PyMuPDF
+- pdfminer
+- python-docx
+Supports extraction from PDF and DOCX.
+
+---
+
+# 📁 Project Structure
 
 ```text
 PrepAI/
-├── frontend/           # React + Vite frontend application
-├── backend/            # FastAPI backend application
+│
+├── frontend/
 │   ├── app/
-│   │   ├── agents/     # LangGraph specialized agents (Coach, Evaluator, etc.)
-│   │   ├── graph/      # LangGraph state and workflow compilation
-│   │   ├── tools/      # Tool registry for Agentic AI
-│   │   ├── ai/         # Gemini and OpenRouter integrations
-│   │   ├── routes/     # FastAPI endpoint routers
-│   │   ├── models/     # MongoDB data models
-│   │   └── schemas/    # Pydantic validation schemas
-│   └── tests/          # Pytest backend tests
-├── voice-agent/        # LiveKit voice interview agent
-├── ai/                 # Centralized AI prompts and templates
-├── docs/               # Detailed project documentation
+│   ├── components/
+│   ├── lib/
+│   ├── hooks/
+│   ├── types/
+│   └── public/
+│
+├── backend/
+│   ├── app/
+│   │   ├── ai/
+│   │   │   ├── gemini_client.py
+│   │   │   ├── openrouter_client.py
+│   │   │   └── prompts/
+│   │   │
+│   │   ├── agents/
+│   │   │   ├── orchestrator.py
+│   │   │   ├── interview_agent.py
+│   │   │   ├── evaluation_agent.py
+│   │   │   └── coach_agent.py
+│   │   │
+│   │   ├── graph/
+│   │   │   ├── state.py
+│   │   │   ├── nodes.py
+│   │   │   ├── edges.py
+│   │   │   └── workflow.py
+│   │   │
+│   │   ├── tools/
+│   │   │   ├── interview_tools.py
+│   │   │   ├── question_tools.py
+│   │   │   ├── evaluation_tools.py
+│   │   │   ├── analytics_tools.py
+│   │   │   └── resume_tools.py
+│   │   │
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── models/
+│   │   └── schemas/
+│   │
+│   └── tests/
+│
+├── voice-agent/
+│   ├── agent.py
+│   ├── config.py
+│   ├── prompts.py
+│   ├── transcript.py
+│   └── requirements.txt
+│
+├── docs/
+│
+├── .env.example
 ├── .gitignore
-├── .env.example        # Environment variable template
-├── README.md           # This file
-└── docker-compose.yml  # Docker services
+├── docker-compose.yml
+└── README.md
 ```
 
 ---
 
-## Environment Variables
+# 🔐 Security Architecture
 
-Copy `.env.example` to `.env` and fill in the required values for each respective component.
+Security is handled primarily on the backend.
 
-| Variable              | Description                        |
-| --------------------- | ---------------------------------- |
-| `MONGODB_URI`         | MongoDB connection string          |
-| `JWT_SECRET`          | Secret key for JWT token signing   |
-| `GEMINI_API_KEY`      | Google Gemini API key              |
-| `OPENROUTER_API_KEY`  | OpenRouter API key (GPT-4o)        |
-| `LIVEKIT_URL`         | LiveKit server URL                 |
-| `LIVEKIT_API_KEY`     | LiveKit API key                    |
-| `LIVEKIT_API_SECRET`  | LiveKit API secret                 |
-| `FRONTEND_URL`        | Frontend URL (for CORS)            |
+### API Keys
+Never exposed to the frontend:
+- GEMINI_API_KEY
+- OPENROUTER_API_KEY
+- LIVEKIT_API_SECRET
+- MONGODB_URI
+- JWT_SECRET
 
-> ⚠️ **Security Note:** Never commit `.env` files. OpenRouter and Gemini API keys must remain strictly on the backend and are never exposed to the frontend.
+### Agent Security
+GPT-4o cannot:
+- Execute arbitrary Python
+- Execute shell commands
+- Access MongoDB directly
+- Access the filesystem
+- Make arbitrary backend requests
+
+Instead:
+```
+GPT-4o
+   ↓
+Approved Tool
+   ↓
+Backend Validation
+   ↓
+Service Layer
+   ↓
+MongoDB / AI Service
+```
+Every database operation is scoped to the authenticated user.
 
 ---
 
-## Local Development
+# 📌 Development Phases
+
+| Phase | Feature | Status |
+|---|---|---|
+| 1 | Backend Foundation | 🟢 |
+| 2 | Authentication | 🟢 |
+| 3 | Interview Management | 🟢 |
+| 4 | Resume Processing | 🟢 |
+| 5 | Gemini Question Generation | 🟢 |
+| 6 | Text Interview Engine | 🟢 |
+| 7 | AI Evaluation & Feedback | 🟢 |
+| 8 | Performance Analytics | 🟢 |
+| 9 | Voice Interviews + LiveKit | 🟢 |
+| 10 | Agentic AI + LangGraph + GPT-4o | 🟢 |
+| 11 | Next.js/React Frontend & Integration | 🔵 |
+| 12 | Deployment & Production Infrastructure | ⚪ |
+
+**Legend:**
+🟢 Completed
+🔵 In Progress
+⚪ Planned
+
+---
+
+# ⚙️ Environment Variables
+
+Create the appropriate environment file for each service.
+
+**Backend (`backend/.env`)**
+```env
+MONGODB_URI=
+JWT_SECRET=
+GEMINI_API_KEY=
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=openai/gpt-4o
+OPENROUTER_SITE_URL=http://localhost:3000
+OPENROUTER_APP_NAME=PrepAI
+LIVEKIT_URL=
+LIVEKIT_API_KEY=
+LIVEKIT_API_SECRET=
+FRONTEND_URL=http://localhost:3000
+```
+
+**Frontend (`frontend/.env`)**
+Only expose public configuration:
+```env
+VITE_API_URL=http://localhost:8000/api
+VITE_LIVEKIT_URL=
+```
+> **Note:** Never put Gemini, OpenRouter, MongoDB, JWT secrets, or LiveKit API secrets in frontend environment variables.
+
+---
+
+# 🚀 Local Development
 
 ### Prerequisites
+Install:
 - Node.js 18+
 - Python 3.10+
-- MongoDB (local or Atlas free tier)
+- MongoDB / MongoDB Atlas
+- Git
 - OpenRouter API key
 - Google Gemini API key
-- LiveKit Cloud account (or local server)
+- LiveKit account or local LiveKit server
 
-### 1. Frontend
+### 1️⃣ Start Backend
+```bash
+cd backend
+python -m venv .venv
+
+# Windows
+.venv\Scripts\activate
+# Linux / macOS
+source .venv/bin/activate
+
+# Install dependencies:
+pip install -r requirements.txt
+
+# Start FastAPI:
+uvicorn app.main:app --reload
+```
+- Backend: http://localhost:8000
+- Swagger: http://localhost:8000/docs
+
+### 2️⃣ Start Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+- Frontend: http://localhost:3000
 
-### 2. Backend
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate   # or .venv\Scripts\activate on Windows
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
-
-### 3. Voice Agent
+### 3️⃣ Start Voice Agent
 ```bash
 cd voice-agent
 python -m venv .venv
@@ -189,21 +639,138 @@ python agent.py start
 
 ---
 
-## Testing
+# 🧪 Testing
 
-The backend comes with an extensive test suite (50+ tests passing) using `pytest`.
-
+**Backend:**
 ```bash
 cd backend
 python -m pytest tests/ -v
 ```
 
+**Frontend:**
+```bash
+cd frontend
+npm run build
+```
+
+Before considering the project complete, verify the complete user journey:
+```
+Register
+   ↓
+Login
+   ↓
+Dashboard
+   ↓
+Create Interview
+   ↓
+Generate Questions
+   ↓
+Text / Voice Interview
+   ↓
+Complete Interview
+   ↓
+AI Evaluation
+   ↓
+Feedback
+   ↓
+Analytics
+   ↓
+AI Career Coach
+```
+
 ---
 
-## License
+# 🔄 End-to-End AI Flow
 
-This project is for educational and personal use.
+The complete AI ecosystem works like this:
+
+```text
+                    ┌──────────────┐
+                    │    USER      │
+                    └──────┬───────┘
+                           │
+                           ▼
+                    React Frontend
+                           │
+                           ▼
+                    FastAPI Backend
+                           │
+          ┌────────────────┼────────────────┐
+          │                │                │
+          ▼                ▼                ▼
+       Gemini          LangGraph          LiveKit
+          │                │                │
+          │             GPT-4o              │
+          │                │             Voice Agent
+          │                │                │
+          ▼                ▼                ▼
+     Interview AI       AI Agents        Voice AI
+          │                │                │
+          └────────────────┼────────────────┘
+                           │
+                           ▼
+                        MongoDB
+                           │
+                           ▼
+                    Analytics + Coach
+```
 
 ---
 
-*Built with ❤️ using React, FastAPI, LangGraph, Google Gemini, OpenRouter, and LiveKit.*
+# 💡 Why PrepAI?
+
+Most interview preparation platforms focus on only one part of the preparation process.
+PrepAI combines: **Practice + AI + Voice + Evaluation + Analytics + Agentic Coaching** into one platform.
+
+The system is designed around an important principle:
+> **AI should not only ask questions — it should understand your performance and help you improve.**
+
+---
+
+# 🔮 Future Roadmap
+
+Potential future enhancements:
+- 🎯 Personalized interview difficulty adaptation
+- 🧑💼 Job-description matching
+- 📚 AI-generated study plans
+- 🧠 Long-term candidate memory
+- 🔗 Job application tracking
+- 💻 Coding interview environment
+- 🗣️ Advanced voice analytics
+- 📹 Interview recording and playback
+- 📈 Advanced skill progression
+- ☁️ Production deployment
+- 📱 Mobile application
+
+---
+
+# 🏆 Project Highlights
+
+PrepAI demonstrates practical implementation of:
+- Full-stack development
+- REST API architecture
+- JWT authentication
+- MongoDB
+- Generative AI
+- Prompt engineering
+- Multi-model AI architecture
+- Agentic AI
+- LangGraph
+- Tool calling
+- Structured AI outputs
+- Real-time voice AI
+- LiveKit
+- Performance analytics
+- Resume processing
+
+---
+
+# 👨💻 Built By
+
+**Praman Jain**  
+B.Tech — Computer Science & Business Systems  
+MITS Gwalior  
+
+❤️ Built With: React · FastAPI · Python · MongoDB · Google Gemini · OpenRouter · GPT-4o · LangGraph · LiveKit · Tailwind CSS
+
+PrepAI — Turn every interview into progress.

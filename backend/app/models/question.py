@@ -19,4 +19,7 @@ indexes = [
     IndexModel([("interview_id", ASCENDING), ("question_number", ASCENDING)], background=True),
     IndexModel([("parent_question_id", ASCENDING)], background=True, sparse=True),
 ]
-questions_collection.create_indexes(indexes)
+try:
+    questions_collection.create_indexes(indexes)
+except Exception:
+    pass

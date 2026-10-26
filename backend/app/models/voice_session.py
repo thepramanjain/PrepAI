@@ -47,4 +47,7 @@ indexes = [
         background=True,
     ),
 ]
-voice_sessions_collection.create_indexes(indexes)
+try:
+    voice_sessions_collection.create_indexes(indexes)
+except Exception:
+    pass

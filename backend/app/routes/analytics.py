@@ -32,7 +32,7 @@ from app.schemas.analytics import (
     FullAnalyticsResponse,
 )
 from app.services import analytics_service
-from app.routes.auth import get_current_user
+from app.auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/analytics", tags=["Analytics"])
 

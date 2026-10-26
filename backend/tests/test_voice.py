@@ -171,12 +171,18 @@ class TestCreateVoiceSession:
         """Without LiveKit env vars, returns 503 Service Unavailable."""
         token = _register_and_login()
         interview_id = _create_interview(token)
-        resp = client.post(
-            f"/api/interviews/{interview_id}/voice/session",
-            headers=_headers(token),
-        )
-        assert resp.status_code == 503
-        assert "not configured" in resp.json()["detail"].lower()
+        with patch.multiple(
+            "app.services.voice_service.settings",
+            LIVEKIT_URL="",
+            LIVEKIT_API_KEY="",
+            LIVEKIT_API_SECRET="",
+        ):
+            resp = client.post(
+                f"/api/interviews/{interview_id}/voice/session",
+                headers=_headers(token),
+            )
+            assert resp.status_code == 503
+            assert "not configured" in resp.json()["detail"].lower()
 
     def test_interview_not_found_returns_404(self):
         token = _register_and_login()

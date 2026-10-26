@@ -259,7 +259,7 @@ export default function VoiceInterview({ onNavigate, interviewId }: VoiceIntervi
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button variant="outline" onClick={() => onNavigate("create-interview")}><RotateCcw size={14} /> New Interview</Button>
-          <Button onClick={() => onNavigate("results")}>View Full Results <ChevronRight size={14} /></Button>
+          <Button onClick={() => onNavigate("results", { interviewId: activeInterviewId.current ?? undefined })}>View Full Results <ChevronRight size={14} /></Button>
         </div>
       </div>
     );

@@ -15,7 +15,7 @@
 #   livekit-plugins-google  (Gemini Live native audio)
 #   livekit               (Python SDK)
 #   silero-vad            (optional VAD, used for barge-in)
-"livekit-agents[google]>=1.7,<2.0"
+livekit-agents[google]>=1.7,<2.0
 
 # --- Configuration ---
 python-dotenv>=1.0

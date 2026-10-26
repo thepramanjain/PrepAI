@@ -45,7 +45,7 @@ function renderScreen(
     case "create-interview": return <CreateInterview onNavigate={onNavigate} />;
     case "text-interview":   return <TextInterview onNavigate={onNavigate} interviewId={sessionState.interviewId} />;
     case "voice-interview":  return <VoiceInterview onNavigate={onNavigate} interviewId={sessionState.interviewId} />;
-    case "results":          return <InterviewResult onNavigate={onNavigate} dark={dark} />;
+    case "results":          return <InterviewResult onNavigate={onNavigate} dark={dark} interviewId={sessionState.interviewId} />;
     case "analytics":        return <AnalyticsPage onNavigate={onNavigate} dark={dark} />;
   }
 }

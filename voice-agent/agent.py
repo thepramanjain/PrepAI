@@ -39,9 +39,11 @@ import json
 import logging
 import os
 
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+env_path = Path(__file__).resolve().parent / ".env"
+load_dotenv(dotenv_path=env_path)
 
 # LiveKit Agents 1.7 imports
 from livekit.agents import (  # type: ignore[import-untyped]

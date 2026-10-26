@@ -244,7 +244,7 @@ export default function TextInterview({ onNavigate, interviewId }: TextInterview
           <Button variant="outline" onClick={() => onNavigate("create-interview")}>
             <RotateCcw size={14} /> New Interview
           </Button>
-          <Button onClick={() => onNavigate("results")}>
+          <Button onClick={() => onNavigate("results", { interviewId: activeInterviewId.current ?? undefined })}>
             View Full Results <ChevronRight size={14} />
           </Button>
         </div>

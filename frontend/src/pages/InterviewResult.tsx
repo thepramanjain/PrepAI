@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   BrainCircuit,
   CheckCircle2,
@@ -7,121 +8,40 @@ import {
   Mic,
   FileText,
   Clock,
-  Building2,
+  Briefcase,
   Lightbulb,
-  BookOpen,
   ChevronRight,
   TrendingUp,
+  Loader2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Progress } from "../components/ui/progress";
 import type { Screen } from "../types";
+import { getFeedback, evaluateInterview, type FeedbackResponse } from "../services/feedback.api";
+import * as interviewApi from "../services/interview.api";
 
 // ── Types ─────────────────────────────────────────────────────────────
 
 interface InterviewResultProps {
-  onNavigate: (screen: Screen) => void;
+  onNavigate: (screen: Screen, state?: Record<string, any>) => void;
   dark?: boolean;
+  interviewId?: string;
 }
 
-// ── Mock session data ─────────────────────────────────────────────────
+// ── Custom SVG radar ──────────────────────────────────────────────────
 
-const SESSION = {
-  role: "System Design",
-  company: "Stripe",
-  date: "Aug 22, 2026",
-  mode: "Text" as const,
-  duration: "28 min",
-  questionCount: 6,
-  overallScore: 84,
-  previousScore: 77,
-};
-
-const RADAR_DATA = [
-  { subject: "Technical",     score: 82, fullMark: 100 },
-  { subject: "Communication", score: 88, fullMark: 100 },
-  { subject: "Problem Solving", score: 81, fullMark: 100 },
-  { subject: "Depth",         score: 85, fullMark: 100 },
-  { subject: "Confidence",    score: 79, fullMark: 100 },
-];
-
-const BREAKDOWN = [
-  { label: "Communication",   score: 88, variant: "success" as const },
-  { label: "Answer Depth",    score: 85, variant: "success" as const },
-  { label: "Technical Accuracy", score: 82, variant: "success" as const },
-  { label: "Problem Solving", score: 81, variant: "default" as const },
-  { label: "Confidence",      score: 79, variant: "default" as const },
-];
-
-const STRENGTHS = [
-  {
-    title: "Clear problem decomposition",
-    desc: "You consistently broke complex systems into manageable components before proposing a solution — textbook approach.",
-  },
-  {
-    title: "Strong trade-off articulation",
-    desc: "CAP theorem, consistency models, and latency trade-offs were handled with accuracy and confidence.",
-  },
-  {
-    title: "Structured communication",
-    desc: "Answers followed a logical flow: context → constraints → solution → edge cases. The interviewer didn't need to prompt.",
-  },
-];
-
-const WEAKNESSES = [
-  {
-    title: "Capacity estimation speed",
-    desc: "You hesitated on back-of-envelope calculations. Estimating QPS and storage upfront sharpens every design proposal.",
-  },
-  {
-    title: "Observability coverage",
-    desc: "Monitoring, alerting, and distributed tracing were thin. Adding a dedicated observability layer to each design rounds it out.",
-  },
-];
-
-const AI_SECTIONS = [
-  {
-    icon: TrendingUp,
-    heading: "Overall assessment",
-    content:
-      "Strong foundation with clear room to grow. A score of 84 reflects genuine competency — your system design instincts are sound. The gap to 90+ is addressable with targeted practice on estimation and observability.",
-    items: null,
-  },
-  {
-    icon: CheckCircle2,
-    heading: "What worked well",
-    content:
-      "Your opening — restating requirements, clarifying scale, and identifying constraints — was textbook. API design and data model selection were well-reasoned and you proactively discussed failure modes.",
-    items: null,
-  },
-  {
-    icon: Lightbulb,
-    heading: "Prioritize before your next session",
-    content: null,
-    items: [
-      "Run 3 capacity estimation drills (QPS → storage → bandwidth). Numbers ground designs and signal confidence to interviewers.",
-      "Revisit observability: metrics → distributed tracing → alerting → SLOs. This pattern appears in nearly every senior-level round.",
-      "Practice the 'explain it like I'm a PM' variant — your technical depth is there, packaging it for mixed audiences will open more doors.",
-    ],
-  },
-  {
-    icon: BookOpen,
-    heading: "Recommended reading",
-    content: null,
-    items: [
-      "Designing Data-Intensive Applications — Chapters 5–7 (replication, partitioning, transactions)",
-      "Google SRE Book — Chapter 4: Service Level Objectives",
-      "System Design Interview Vol. 2 — Chapter on Back-of-Envelope Estimation",
-    ],
-  },
-];
-
-// ── Custom SVG radar (avoids Recharts duplicate-key bug) ─────────────
-
-function SpiderChart({ data, dark }: { data: typeof RADAR_DATA; dark: boolean }) {
-  const cx = 150, cy = 108, R = 72, labelR = 95, n = data.length;
+function SpiderChart({
+  data,
+  dark,
+}: {
+  data: Array<{ subject: string; score: number; fullMark: number }>;
+  dark: boolean;
+}) {
+  const cx = 150, cy = 108, R = 72, labelR = 95;
+  const n = Math.max(data.length, 3);
   const gridColor  = dark ? "#1e293b" : "#e2e8f0";
   const axisColor  = dark ? "#64748b" : "#94a3b8";
   const fillColor  = dark ? "#a855f7" : "#7c3aed";
@@ -136,7 +56,7 @@ function SpiderChart({ data, dark }: { data: typeof RADAR_DATA; dark: boolean })
   }
 
   const scorePts = data
-    .map((d, i) => pt(i, (d.score / 100) * R).map(v => v.toFixed(1)).join(","))
+    .map((d, i) => pt(i, ((d.score || 0) / 100) * R).map(v => v.toFixed(1)).join(","))
     .join(" ");
 
   return (
@@ -148,9 +68,11 @@ function SpiderChart({ data, dark }: { data: typeof RADAR_DATA; dark: boolean })
         const [x, y] = pt(i, R);
         return <line key={`axis-${i}`} x1={cx} y1={cy} x2={x.toFixed(1)} y2={y.toFixed(1)} stroke={gridColor} strokeWidth={1} />;
       })}
-      <polygon points={scorePts} fill={fillColor} fillOpacity={0.15} stroke={fillColor} strokeWidth={2} strokeLinejoin="round" />
+      {data.length > 0 && (
+        <polygon points={scorePts} fill={fillColor} fillOpacity={0.18} stroke={fillColor} strokeWidth={2} strokeLinejoin="round" />
+      )}
       {data.map((d, i) => {
-        const [x, y] = pt(i, (d.score / 100) * R);
+        const [x, y] = pt(i, ((d.score || 0) / 100) * R);
         return <circle key={`dot-${i}`} cx={x.toFixed(1)} cy={y.toFixed(1)} r={4} fill={fillColor} />;
       })}
       {data.map((d, i) => {
@@ -200,7 +122,6 @@ function ScoreMeter({ score }: { score: number }) {
         viewBox="0 0 200 110"
         aria-label={`Score: ${score} out of 100, grade ${grade}`}
       >
-        {/* Track */}
         <path
           d={trackD}
           fill="none"
@@ -209,7 +130,6 @@ function ScoreMeter({ score }: { score: number }) {
           strokeLinecap="round"
           className="text-secondary"
         />
-        {/* Fill arc */}
         {score > 0 && score < 100 && (
           <path
             d={fillD}
@@ -228,7 +148,6 @@ function ScoreMeter({ score }: { score: number }) {
             strokeLinecap="round"
           />
         )}
-        {/* Needle cap dot */}
         {score > 0 && (
           <circle
             cx={score >= 100 ? cx + R : Number(fillX)}
@@ -237,7 +156,6 @@ function ScoreMeter({ score }: { score: number }) {
             fill={fillColor}
           />
         )}
-        {/* Score number */}
         <text
           x={cx}
           y={68}
@@ -264,7 +182,6 @@ function ScoreMeter({ score }: { score: number }) {
         </text>
       </svg>
 
-      {/* Grade badge below SVG */}
       <div className="mt-1 flex items-center gap-2">
         <span
           className="text-2xl font-extrabold"
@@ -277,7 +194,7 @@ function ScoreMeter({ score }: { score: number }) {
             {score >= 80 ? "Strong" : score >= 60 ? "Developing" : "Needs Work"}
           </p>
           <p className="text-[10px] text-muted-foreground" style={{ fontFamily: "var(--font-mono)" }}>
-            +{score - SESSION.previousScore} vs last session
+            Overall Performance
           </p>
         </div>
       </div>
@@ -287,7 +204,180 @@ function ScoreMeter({ score }: { score: number }) {
 
 // ── Main component ────────────────────────────────────────────────────
 
-export default function InterviewResult({ onNavigate, dark = false }: InterviewResultProps) {
+export default function InterviewResult({ onNavigate, dark = false, interviewId }: InterviewResultProps) {
+  const [loading, setLoading] = useState(true);
+  const [evaluating, setEvaluating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<FeedbackResponse | null>(null);
+  const [interview, setInterview] = useState<interviewApi.InterviewDoc | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadData() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        let currentId = interviewId;
+
+        // If no interviewId passed, find the most recent completed interview
+        if (!currentId) {
+          const listRes = await interviewApi.getInterviews(1, 10);
+          const interviews = listRes?.items || [];
+          if (interviews.length > 0) {
+            const completed = interviews.find((i: any) => i.status === "completed") || interviews[0];
+            currentId = completed.id || completed._id;
+          }
+        }
+
+        if (!currentId) {
+          if (active) {
+            setInterview(null);
+            setFeedback(null);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // Fetch interview details
+        const intDoc = await interviewApi.getInterview(currentId);
+        if (active) setInterview(intDoc);
+
+        // Try to fetch feedback; if 404, trigger evaluation
+        try {
+          const fb = await getFeedback(currentId);
+          if (active) setFeedback(fb);
+        } catch (fbErr: any) {
+          if (fbErr?.response?.status === 404) {
+            if (active) setEvaluating(true);
+            try {
+              const evaluated = await evaluateInterview(currentId);
+              if (active) setFeedback(evaluated);
+            } catch (evalErr: any) {
+              if (active) {
+                console.error("Evaluation failed:", evalErr);
+                setError(evalErr?.response?.data?.detail || "Could not generate AI feedback for this interview.");
+              }
+            } finally {
+              if (active) setEvaluating(false);
+            }
+          } else {
+            throw fbErr;
+          }
+        }
+      } catch (err: any) {
+        if (active) {
+          console.error("Failed to load interview results:", err);
+          setError(err?.response?.data?.detail || "Failed to load interview results.");
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    loadData();
+    return () => { active = false; };
+  }, [interviewId]);
+
+  if (loading || evaluating) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+        <Loader2 size={36} className="animate-spin text-primary" />
+        <p className="text-base font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
+          {evaluating ? "AI Coach is analyzing your answers..." : "Loading interview feedback..."}
+        </p>
+        <p className="max-w-xs text-xs text-muted-foreground">
+          {evaluating ? "Evaluating technical accuracy, problem solving, communication, and depth." : "Retrieving your evaluation metrics."}
+        </p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-lg py-16 text-center">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
+          <XCircle size={28} />
+        </div>
+        <h2 className="text-xl font-bold text-foreground">Could not load evaluation</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{error}</p>
+        <div className="mt-6 flex justify-center gap-3">
+          <Button variant="outline" onClick={() => onNavigate("dashboard")}>
+            Go to Dashboard
+          </Button>
+          <Button onClick={() => onNavigate("create-interview")}>
+            New Interview
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!interview && !feedback) {
+    return (
+      <div className="mx-auto max-w-md py-20 text-center">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <BrainCircuit size={28} />
+        </div>
+        <h2 className="text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
+          No Interview Results Yet
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Take your first practice interview to receive detailed AI evaluation and personalized recommendations.
+        </p>
+        <div className="mt-6">
+          <Button onClick={() => onNavigate("create-interview")}>
+            <Sparkles size={15} /> Start an Interview
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const roleTitle = interview?.role || "Technical Interview";
+  const modeLabel = interview?.mode === "voice" ? "Voice" : "Text";
+  const overallScore = feedback?.overall_score ?? 0;
+  const categories = feedback?.category_scores || {
+    technical: 0,
+    communication: 0,
+    problem_solving: 0,
+    relevance: 0,
+  };
+
+  const radarData = [
+    { subject: "Technical", score: categories.technical, fullMark: 100 },
+    { subject: "Communication", score: categories.communication, fullMark: 100 },
+    { subject: "Problem Solving", score: categories.problem_solving, fullMark: 100 },
+    { subject: "Relevance", score: categories.relevance, fullMark: 100 },
+    ...(feedback?.topic_analysis?.slice(0, 3).map(t => ({
+      subject: t.topic,
+      score: t.score,
+      fullMark: 100,
+    })) || []),
+  ];
+
+  const breakdownBars = [
+    { label: "Technical Accuracy", score: categories.technical, variant: categories.technical >= 75 ? ("success" as const) : ("default" as const) },
+    { label: "Communication", score: categories.communication, variant: categories.communication >= 75 ? ("success" as const) : ("default" as const) },
+    { label: "Problem Solving", score: categories.problem_solving, variant: categories.problem_solving >= 75 ? ("success" as const) : ("default" as const) },
+    { label: "Answer Relevance", score: categories.relevance, variant: categories.relevance >= 75 ? ("success" as const) : ("default" as const) },
+  ];
+
+  const strengthsList = (feedback?.strengths || []).map((s) => {
+    const parts = s.split(":");
+    return parts.length > 1
+      ? { title: parts[0].trim(), desc: parts.slice(1).join(":").trim() }
+      : { title: "Strength", desc: s };
+  });
+
+  const weaknessesList = (feedback?.weaknesses || []).map((w) => {
+    const parts = w.split(":");
+    return parts.length > 1
+      ? { title: parts[0].trim(), desc: parts.slice(1).join(":").trim() }
+      : { title: "Area to Improve", desc: w };
+  });
+
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-5 py-8 pb-12">
 
@@ -299,23 +389,27 @@ export default function InterviewResult({ onNavigate, dark = false }: InterviewR
               className="text-2xl font-bold tracking-tight text-foreground"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              {SESSION.role}
+              {roleTitle}
             </h1>
-            <Badge variant={SESSION.mode === "Voice" ? "violet" : "default"}>
-              {SESSION.mode === "Voice" ? <Mic size={10} /> : <FileText size={10} />}
-              {SESSION.mode}
+            <Badge variant={modeLabel === "Voice" ? "violet" : "default"}>
+              {modeLabel === "Voice" ? <Mic size={10} /> : <FileText size={10} />}
+              {modeLabel}
             </Badge>
+            {interview?.difficulty && (
+              <Badge variant="outline">{interview.difficulty}</Badge>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground" style={{ fontFamily: "var(--font-mono)" }}>
-            <span className="flex items-center gap-1"><Building2 size={11} />{SESSION.company}</span>
-            <span className="flex items-center gap-1"><Clock size={11} />{SESSION.duration}</span>
-            <span>{SESSION.questionCount} questions</span>
-            <span>{SESSION.date}</span>
+            <span className="flex items-center gap-1"><Briefcase size={11} />{interview?.experience_level || "Standard"}</span>
+            <span className="flex items-center gap-1"><Clock size={11} />{new Date(feedback?.created_at || Date.now()).toLocaleDateString()}</span>
+            {feedback?.question_evaluations && (
+              <span>{feedback.question_evaluations.length} questions evaluated</span>
+            )}
           </div>
         </div>
         <div className="flex gap-2 shrink-0">
           <Button variant="outline" size="sm" onClick={() => onNavigate("create-interview")}>
-            <RotateCcw size={13} /> Retry
+            <RotateCcw size={13} /> New Session
           </Button>
           <Button variant="ghost" size="sm" onClick={() => onNavigate("dashboard")}>
             <LayoutDashboard size={13} /> Dashboard
@@ -325,24 +419,23 @@ export default function InterviewResult({ onNavigate, dark = false }: InterviewR
 
       {/* ── Score meter + Radar ──────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-5">
-
         {/* Meter card */}
         <Card className="sm:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Overall Score</CardTitle>
           </CardHeader>
           <CardContent className="flex justify-center pb-5">
-            <ScoreMeter score={SESSION.overallScore} />
+            <ScoreMeter score={overallScore} />
           </CardContent>
         </Card>
 
-        {/* Radar card — single series, no legend needed; title names it */}
+        {/* Radar card */}
         <Card className="sm:col-span-3">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Skill Breakdown</CardTitle>
           </CardHeader>
           <CardContent className="pb-3">
-            <SpiderChart data={RADAR_DATA} dark={dark} />
+            <SpiderChart data={radarData} dark={dark} />
           </CardContent>
         </Card>
       </div>
@@ -350,10 +443,10 @@ export default function InterviewResult({ onNavigate, dark = false }: InterviewR
       {/* ── Breakdown progress bars ──────────────────────────── */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Score Breakdown</CardTitle>
+          <CardTitle className="text-sm">Category Performance</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {BREAKDOWN.map(({ label, score, variant }) => (
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {breakdownBars.map(({ label, score, variant }) => (
             <div key={label} className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-foreground">{label}</span>
@@ -372,7 +465,6 @@ export default function InterviewResult({ onNavigate, dark = false }: InterviewR
 
       {/* ── Strengths + Weaknesses ───────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2">
-
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm">
@@ -380,18 +472,22 @@ export default function InterviewResult({ onNavigate, dark = false }: InterviewR
               Strengths
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {STRENGTHS.map(({ title, desc }) => (
-              <div key={title} className="flex gap-3">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-                  <CheckCircle2 size={11} />
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">{title}</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{desc}</p>
+          <CardContent className="space-y-3.5">
+            {strengthsList.length > 0 ? (
+              strengthsList.map(({ title, desc }, idx) => (
+                <div key={idx} className="flex gap-3">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                    <CheckCircle2 size={11} />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{title}</p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{desc}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-xs text-muted-foreground">Keep answering questions to identify key strengths.</p>
+            )}
           </CardContent>
         </Card>
 
@@ -402,18 +498,22 @@ export default function InterviewResult({ onNavigate, dark = false }: InterviewR
               Areas to Improve
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {WEAKNESSES.map(({ title, desc }) => (
-              <div key={title} className="flex gap-3">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-amber-500">
-                  <XCircle size={11} />
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">{title}</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{desc}</p>
+          <CardContent className="space-y-3.5">
+            {weaknessesList.length > 0 ? (
+              weaknessesList.map(({ title, desc }, idx) => (
+                <div key={idx} className="flex gap-3">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-amber-500">
+                    <XCircle size={11} />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{title}</p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{desc}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-xs text-muted-foreground">No specific weaknesses flagged.</p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -428,57 +528,84 @@ export default function InterviewResult({ onNavigate, dark = false }: InterviewR
             <div>
               <CardTitle className="text-base">AI Coach Analysis</CardTitle>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Personalized feedback based on your responses
+                Personalized feedback generated by Gemini
               </p>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          {AI_SECTIONS.map(({ icon: Icon, heading, content, items }) => (
-            <div key={heading} className="flex gap-3.5">
+          {feedback?.summary && (
+            <div className="flex gap-3.5">
               <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                <Icon size={13} />
+                <TrendingUp size={13} />
               </span>
               <div className="min-w-0 flex-1">
-                <p
-                  className="mb-1.5 text-sm font-semibold text-foreground"
-                  style={{ fontFamily: "var(--font-display)" }}
-                >
-                  {heading}
+                <p className="mb-1 text-sm font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
+                  Overall Assessment
                 </p>
-                {content && (
-                  <p className="text-sm leading-relaxed text-muted-foreground">{content}</p>
-                )}
-                {items && (
-                  <ul className="space-y-1.5">
-                    {items.map((item, i) => (
-                      <li
-                        key={i}
-                        className="flex items-start gap-2 text-sm text-muted-foreground"
-                      >
-                        <ChevronRight
-                          size={13}
-                          className="mt-0.5 shrink-0 text-primary"
-                        />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <p className="text-sm leading-relaxed text-muted-foreground">{feedback.summary}</p>
               </div>
             </div>
-          ))}
+          )}
+
+          {feedback?.recommendations && feedback.recommendations.length > 0 && (
+            <div className="flex gap-3.5">
+              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                <Lightbulb size={13} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="mb-1 text-sm font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
+                  Recommended Action Items
+                </p>
+                <ul className="space-y-1.5">
+                  {feedback.recommendations.map((rec, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <ChevronRight size={13} className="mt-0.5 shrink-0 text-primary" />
+                      {rec}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {/* Question-by-question breakdown */}
+          {feedback?.question_evaluations && feedback.question_evaluations.length > 0 && (
+            <div className="pt-2">
+              <p className="mb-3 text-sm font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
+                Per-Question Breakdown
+              </p>
+              <div className="space-y-3">
+                {feedback.question_evaluations.map((qe, index) => (
+                  <div
+                    key={qe.question_id || index}
+                    className="rounded-lg border border-border/70 bg-card p-3.5 text-xs text-muted-foreground"
+                  >
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <span className="font-semibold text-foreground" style={{ fontFamily: "var(--font-mono)" }}>
+                        Question #{index + 1} ({qe.quality || "Evaluated"})
+                      </span>
+                      <Badge variant="outline" className="font-bold tabular-nums">
+                        {qe.score}/100
+                      </Badge>
+                    </div>
+                    <p className="leading-relaxed">{qe.feedback}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* ── Actions ──────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
         <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--font-mono)" }}>
-          session · aug_22_system_design_stripe
+          Interview ID: {interview?.id || "N/A"}
         </p>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => onNavigate("results")}>
-            View History
+          <Button variant="outline" onClick={() => onNavigate("dashboard")}>
+            Dashboard
           </Button>
           <Button onClick={() => onNavigate("create-interview")}>
             Next Interview <ChevronRight size={14} />

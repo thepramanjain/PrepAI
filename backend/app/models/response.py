@@ -24,4 +24,7 @@ indexes = [
         background=True,
     ),
 ]
-responses_collection.create_indexes(indexes)
+try:
+    responses_collection.create_indexes(indexes)
+except Exception:
+    pass

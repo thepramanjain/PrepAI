@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   FileText,
   Mic,
@@ -10,20 +10,25 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Loader2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import type { Screen } from "../types";
+import { getFullAnalytics } from "../services/analytics.api";
+import * as interviewApi from "../services/interview.api";
 
 // ── Types ─────────────────────────────────────────────────────────────
 
 interface DashboardProps {
-  onNavigate: (screen: Screen) => void;
+  onNavigate: (screen: Screen, state?: Record<string, any>) => void;
   dark?: boolean;
 }
 
 interface ChartPoint {
+  id: string;
   name: string;
   date: string;
   score: number;
@@ -31,85 +36,35 @@ interface ChartPoint {
 }
 
 interface SessionRow {
-  id: number;
+  id: string;
   date: string;
   role: string;
-  company: string;
+  difficulty: string;
   mode: "Text" | "Voice";
-  score: number;
-  duration: string;
+  score: number | null;
+  status: string;
 }
 
-interface SkillChip {
+interface WeaknessItem {
   name: string;
-  score: number;
-  category: string;
+  count: number;
 }
-
-// ── Mock data ─────────────────────────────────────────────────────────
-
-const CHART_DATA: ChartPoint[] = [
-  { name: "Session 1",  date: "Jul 8",  score: 58, mode: "Text" },
-  { name: "Session 2",  date: "Jul 11", score: 63, mode: "Voice" },
-  { name: "Session 3",  date: "Jul 14", score: 60, mode: "Text" },
-  { name: "Session 4",  date: "Jul 17", score: 69, mode: "Voice" },
-  { name: "Session 5",  date: "Jul 20", score: 72, mode: "Text" },
-  { name: "Session 6",  date: "Jul 23", score: 70, mode: "Voice" },
-  { name: "Session 7",  date: "Jul 26", score: 76, mode: "Text" },
-  { name: "Session 8",  date: "Jul 29", score: 80, mode: "Voice" },
-  { name: "Session 9",  date: "Aug 2",  score: 78, mode: "Text" },
-  { name: "Session 10", date: "Aug 6",  score: 83, mode: "Voice" },
-  { name: "Session 11", date: "Aug 10", score: 82, mode: "Text" },
-  { name: "Session 12", date: "Aug 14", score: 87, mode: "Voice" },
-  { name: "Session 13", date: "Aug 17", score: 85, mode: "Text" },
-  { name: "Session 14", date: "Aug 20", score: 91, mode: "Voice" },
-  { name: "Session 15", date: "Aug 22", score: 84, mode: "Text" },
-];
-
-const SESSIONS: SessionRow[] = [
-  { id: 1, date: "Aug 22", role: "System Design",          company: "Stripe",    mode: "Text",  score: 84, duration: "28 min" },
-  { id: 2, date: "Aug 20", role: "Behavioral — Leadership", company: "Anthropic", mode: "Voice", score: 91, duration: "34 min" },
-  { id: 3, date: "Aug 17", role: "LC Hard — Dynamic Prog.", company: "Google",    mode: "Text",  score: 55, duration: "45 min" },
-  { id: 4, date: "Aug 14", role: "System Design",           company: "Meta",      mode: "Voice", score: 87, duration: "40 min" },
-  { id: 5, date: "Aug 10", role: "Behavioral — Culture",   company: "Netflix",   mode: "Text",  score: 82, duration: "26 min" },
-  { id: 6, date: "Aug 6",  role: "System Design — Cache",  company: "Stripe",    mode: "Voice", score: 83, duration: "38 min" },
-  { id: 7, date: "Aug 2",  role: "LC Medium — DP",          company: "Amazon",    mode: "Text",  score: 63, duration: "32 min" },
-  { id: 8, date: "Jul 29", role: "Behavioral — Conflict",  company: "Figma",     mode: "Voice", score: 80, duration: "30 min" },
-];
-
-const WEAK_SKILLS: SkillChip[] = [
-  { name: "Dynamic Programming",   score: 42, category: "Algorithms" },
-  { name: "Distributed Systems",   score: 51, category: "System Design" },
-  { name: "System Scalability",    score: 54, category: "System Design" },
-  { name: "Estimation & Sizing",   score: 57, category: "System Design" },
-  { name: "Concurrency",           score: 60, category: "Algorithms" },
-  { name: "Negotiation",           score: 63, category: "Behavioral" },
-  { name: "ML Fundamentals",       score: 65, category: "Technical" },
-];
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
-function scoreVariant(score: number): "success" | "warning" | "destructive" {
+function scoreVariant(score: number | null): "success" | "warning" | "destructive" | "outline" {
+  if (score === null) return "outline";
   if (score >= 80) return "success";
   if (score >= 60) return "warning";
   return "destructive";
 }
 
-function scoreTailwind(score: number): string {
+function scoreTailwind(score: number | null): string {
+  if (score === null) return "text-muted-foreground";
   if (score >= 80) return "text-emerald-600 dark:text-emerald-400";
   if (score >= 60) return "text-amber-600 dark:text-amber-400";
   return "text-red-600 dark:text-red-400";
 }
-
-function skillDotColor(score: number): string {
-  if (score >= 60) return "bg-amber-500";
-  return "bg-red-500";
-}
-
-const avg = Math.round(CHART_DATA.reduce((s, p) => s + p.score, 0) / CHART_DATA.length);
-const best = Math.max(...CHART_DATA.map((p) => p.score));
-const bestSession = SESSIONS.find((s) => s.score === best)!;
-const totalSessions = 47;
 
 // ── Circular Progress ─────────────────────────────────────────────────
 
@@ -127,7 +82,6 @@ function CircularProgress({ value, size = 88, strokeWidth = 8 }: { value: number
           <stop offset="100%" stopColor="#8b5cf6" />
         </linearGradient>
       </defs>
-      {/* Track */}
       <circle
         cx={cx} cy={cx} r={r}
         fill="none"
@@ -135,7 +89,6 @@ function CircularProgress({ value, size = 88, strokeWidth = 8 }: { value: number
         stroke="currentColor"
         className="text-secondary"
       />
-      {/* Arc */}
       <circle
         cx={cx} cy={cx} r={r}
         fill="none"
@@ -151,7 +104,7 @@ function CircularProgress({ value, size = 88, strokeWidth = 8 }: { value: number
   );
 }
 
-// ── Custom SVG area chart (replaces Recharts AreaChart) ──────────────
+// ── SVG Area Chart ───────────────────────────────────────────────────
 
 function ScoreChart({ data, dark }: { data: ChartPoint[]; dark: boolean }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -161,7 +114,7 @@ function ScoreChart({ data, dark }: { data: ChartPoint[]; dark: boolean }) {
   const VW = 600, VH = 220;
   const L = 44, R = VW - 8, T = 8, B = VH - 20;
   const W = R - L, H = B - T;
-  const Y_MIN = 40, Y_MAX = 100;
+  const Y_MIN = 0, Y_MAX = 100;
 
   const lineColor  = dark ? "#818cf8" : "#6366f1";
   const gridColor  = dark ? "#1e293b" : "#f1f5f9";
@@ -172,7 +125,7 @@ function ScoreChart({ data, dark }: { data: ChartPoint[]; dark: boolean }) {
   const px = (i: number) => N < 2 ? L + W / 2 : L + (i / (N - 1)) * W;
   const py = (v: number) => B - ((v - Y_MIN) / (Y_MAX - Y_MIN)) * H;
 
-  const yTicks = [40, 60, 80, 100];
+  const yTicks = [0, 25, 50, 75, 100];
   const xTickCount = Math.min(N, 6);
   const xTickIdxs = N <= 6
     ? data.map((_, i) => i)
@@ -211,8 +164,9 @@ function ScoreChart({ data, dark }: { data: ChartPoint[]; dark: boolean }) {
 
   if (N === 0) {
     return (
-      <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
-        No sessions match this filter.
+      <div className="flex h-[220px] flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
+        <span>No score data available yet.</span>
+        <span className="text-xs">Complete an interview session to see your progress curve.</span>
       </div>
     );
   }
@@ -289,7 +243,7 @@ function ScoreChart({ data, dark }: { data: ChartPoint[]; dark: boolean }) {
 
 function Trend({ value, label }: { value: string; label: string }) {
   const positive = value.startsWith("+");
-  const neutral = value.startsWith("—") || value === "0";
+  const neutral = value.startsWith("—") || value === "0" || value === "";
   return (
     <div className={`flex items-center gap-1 text-xs font-medium ${
       neutral ? "text-muted-foreground" : positive ? "text-emerald-600 dark:text-emerald-400" : "text-red-500"
@@ -307,10 +261,91 @@ type FilterMode = "all" | "text" | "voice";
 export default function Dashboard({ onNavigate, dark = false }: DashboardProps) {
   const [filter, setFilter] = useState<FilterMode>("all");
   const [activeSkills, setActiveSkills] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [chartData, setChartData] = useState<ChartPoint[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadDashboard() {
+      setLoading(true);
+      try {
+        const [anData, intRes] = await Promise.allSettled([
+          getFullAnalytics(),
+          interviewApi.getInterviews(1, 10),
+        ]);
+
+        if (!active) return;
+
+        let fullAnalytics: any = null;
+        if (anData.status === "fulfilled") {
+          fullAnalytics = anData.value;
+          setAnalytics(fullAnalytics);
+
+          // Convert score_trend to ChartPoints
+          if (Array.isArray(fullAnalytics?.score_trend)) {
+            const mappedPoints: ChartPoint[] = fullAnalytics.score_trend.map((pt: any, i: number) => {
+              const d = new Date(pt.date);
+              const dateStr = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+              return {
+                id: pt.interview_id,
+                name: pt.title || `Session ${i + 1}`,
+                date: dateStr,
+                score: pt.score,
+                mode: "Text", // default or match from session
+              };
+            });
+            setChartData(mappedPoints);
+          }
+        }
+
+        if (intRes.status === "fulfilled") {
+          const rawItems = intRes.value?.items || [];
+          const mappedRows: SessionRow[] = rawItems.map((item: any) => {
+            const d = new Date(item.created_at || Date.now());
+            const dateStr = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+            return {
+              id: item.id || item._id,
+              date: dateStr,
+              role: item.role || item.title || "Technical Interview",
+              difficulty: item.difficulty || "Medium",
+              mode: item.mode === "voice" ? "Voice" : "Text",
+              score: null, // will be paired if in score_trend or loaded
+              status: item.status,
+            };
+          });
+
+          // Match scores from score_trend if available
+          if (fullAnalytics?.score_trend) {
+            const scoreMap = new Map<string, number>();
+            for (const st of fullAnalytics.score_trend) {
+              scoreMap.set(st.interview_id, st.score);
+            }
+            mappedRows.forEach(r => {
+              if (scoreMap.has(r.id)) {
+                r.score = scoreMap.get(r.id)!;
+              }
+            });
+          }
+
+          setSessions(mappedRows);
+        }
+      } catch (err) {
+        console.error("Dashboard data load error:", err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    loadDashboard();
+    return () => { active = false; };
+  }, []);
 
   const filteredChart = filter === "all"
-    ? CHART_DATA
-    : CHART_DATA.filter((d) => d.mode.toLowerCase() === filter);
+    ? chartData
+    : chartData.filter((d) => d.mode.toLowerCase() === filter);
 
   function toggleSkill(name: string) {
     setActiveSkills((prev) => {
@@ -320,21 +355,45 @@ export default function Dashboard({ onNavigate, dark = false }: DashboardProps) 
     });
   }
 
-  // colors used in chart legend below the card
   const refLine = dark ? "#334155" : "#e2e8f0";
   const line    = dark ? "#818cf8" : "#6366f1";
+
+  const totalInterviews = analytics?.overview?.total_interviews ?? sessions.length ?? 0;
+  const avgScore = analytics?.overview?.average_score !== null && analytics?.overview?.average_score !== undefined
+    ? Math.round(analytics.overview.average_score)
+    : 0;
+  const bestScore = analytics?.overview?.best_score ?? (chartData.length > 0 ? Math.max(...chartData.map(c => c.score)) : 0);
+  
+  // Weaknesses list from backend
+  const weakSkills: WeaknessItem[] = analytics?.top_weaknesses?.map((w: any) => ({
+    name: w.text,
+    count: w.count,
+  })) || [];
+
+  const trendText = analytics?.improvement?.improvement_percentage !== null && analytics?.improvement?.improvement_percentage !== undefined
+    ? (analytics.improvement.improvement_percentage > 0 ? `+${analytics.improvement.improvement_percentage}%` : `${analytics.improvement.improvement_percentage}%`)
+    : "—";
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
+        <Loader2 size={36} className="animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Loading your analytics and progress...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6 pb-10">
 
-      {/* ── Page header ─────────────────────────────────────── */}
+      {/* ── Page header ─────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground" style={{ fontFamily: "var(--font-display)" }}>
             Dashboard
           </h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Google onsite in <span className="font-semibold text-foreground">6 days</span> — keep the momentum.
+            Track your performance, review recent interviews, and sharpen your skills.
           </p>
         </div>
         <Button onClick={() => onNavigate("create-interview")}>
@@ -342,7 +401,7 @@ export default function Dashboard({ onNavigate, dark = false }: DashboardProps) 
         </Button>
       </div>
 
-      {/* ── Metric cards ────────────────────────────────────── */}
+      {/* ── Metric cards ────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
         {/* Total Interviews */}
@@ -354,9 +413,9 @@ export default function Dashboard({ onNavigate, dark = false }: DashboardProps) 
                   Total Interviews
                 </p>
                 <p className="mt-2 text-4xl font-extrabold tabular-nums tracking-tighter text-foreground" style={{ fontFamily: "var(--font-display)" }}>
-                  {totalSessions}
+                  {totalInterviews}
                 </p>
-                <Trend value="+3" label="this week" />
+                <Trend value={totalInterviews > 0 ? `+${totalInterviews}` : "0"} label="sessions" />
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Hash size={18} />
@@ -365,7 +424,7 @@ export default function Dashboard({ onNavigate, dark = false }: DashboardProps) 
           </CardContent>
         </Card>
 
-        {/* Average Score — circular progress */}
+        {/* Average Score */}
         <Card className="relative overflow-hidden hover:-translate-y-0.5 hover:shadow-md">
           <CardContent className="p-5">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground" style={{ fontFamily: "var(--font-mono)" }}>
@@ -373,10 +432,10 @@ export default function Dashboard({ onNavigate, dark = false }: DashboardProps) 
             </p>
             <div className="mt-2 flex items-center gap-4">
               <div className="relative shrink-0">
-                <CircularProgress value={avg} size={88} strokeWidth={8} />
+                <CircularProgress value={avgScore} size={88} strokeWidth={8} />
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-xl font-extrabold tabular-nums tracking-tight leading-none text-foreground" style={{ fontFamily: "var(--font-display)" }}>
-                    {avg}
+                    {avgScore}
                   </span>
                   <span className="text-[10px] text-muted-foreground" style={{ fontFamily: "var(--font-mono)" }}>
                     /100
@@ -384,9 +443,13 @@ export default function Dashboard({ onNavigate, dark = false }: DashboardProps) 
                 </div>
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">Good standing</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">Up 4 pts from last month</p>
-                <Trend value="+4" label="vs. Jul avg" />
+                <p className="text-sm font-semibold text-foreground">
+                  {avgScore >= 80 ? "Excellent" : avgScore >= 60 ? "Solid" : avgScore > 0 ? "Developing" : "No score yet"}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {totalInterviews > 0 ? "Across completed sessions" : "Complete a session to evaluate"}
+                </p>
+                <Trend value={trendText} label="improvement" />
               </div>
             </div>
           </CardContent>
@@ -401,12 +464,12 @@ export default function Dashboard({ onNavigate, dark = false }: DashboardProps) 
                   Best Score
                 </p>
                 <p className="mt-2 text-4xl font-extrabold tabular-nums tracking-tighter text-emerald-500" style={{ fontFamily: "var(--font-display)" }}>
-                  {best}
+                  {bestScore}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {bestSession?.role} · {bestSession?.date}
+                  {bestScore > 0 ? "Highest evaluated score" : "No score recorded yet"}
                 </p>
-                <Trend value="+8" label="vs. avg" />
+                <Trend value={bestScore > 0 ? `${bestScore}/100` : "—"} label="peak" />
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
                 <Award size={18} />
@@ -415,19 +478,19 @@ export default function Dashboard({ onNavigate, dark = false }: DashboardProps) 
           </CardContent>
         </Card>
 
-        {/* Streak */}
+        {/* Evaluated Sessions */}
         <Card className="hover:-translate-y-0.5 hover:shadow-md">
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground" style={{ fontFamily: "var(--font-mono)" }}>
-                  Practice Streak
+                  Evaluated
                 </p>
                 <p className="mt-2 text-4xl font-extrabold tabular-nums tracking-tighter text-amber-500" style={{ fontFamily: "var(--font-display)" }}>
-                  12
+                  {analytics?.overview?.evaluated_interviews ?? 0}
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">days in a row</p>
-                <Trend value="+5" label="vs. best" />
+                <p className="mt-1 text-xs text-muted-foreground">AI evaluations ready</p>
+                <Trend value={analytics?.overview?.completed_interviews ? `${analytics.overview.completed_interviews} done` : "0"} label="total finished" />
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500">
                 <Flame size={18} />
@@ -437,7 +500,7 @@ export default function Dashboard({ onNavigate, dark = false }: DashboardProps) 
         </Card>
       </div>
 
-      {/* ── Chart + Skills ──────────────────────────────────── */}
+      {/* ── Chart + Skills ──────────────────────────────────────── */}
       <div className="grid gap-6 xl:grid-cols-3">
 
         {/* Performance Chart */}
@@ -446,22 +509,23 @@ export default function Dashboard({ onNavigate, dark = false }: DashboardProps) 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <CardTitle className="text-base">Score Progression</CardTitle>
-                <CardDescription className="mt-0.5">Last 15 sessions · target 85</CardDescription>
+                <CardDescription className="mt-0.5">Chronological session performance</CardDescription>
               </div>
+
               {/* Filter toggle */}
               <div className="flex items-center gap-1 rounded-lg border border-border bg-muted p-1 text-xs font-medium">
-                {(["all", "text", "voice"] as const).map((mode) => (
+                {(["all", "text", "voice"] as const).map((m) => (
                   <button
-                    key={mode}
-                    onClick={() => setFilter(mode)}
+                    key={m}
+                    onClick={() => setFilter(m)}
                     className={[
                       "rounded-md px-3 py-1.5 capitalize transition-all duration-100",
-                      filter === mode
+                      filter === m
                         ? "bg-card text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground",
                     ].join(" ")}
                   >
-                    {mode === "all" ? "All" : mode === "text" ? "Text" : "Voice"}
+                    {m === "all" ? "All" : m === "text" ? "Text" : "Voice"}
                   </button>
                 ))}
               </div>
@@ -486,43 +550,45 @@ export default function Dashboard({ onNavigate, dark = false }: DashboardProps) 
           </CardContent>
         </Card>
 
-        {/* Weakest Skills */}
+        {/* Focus Areas */}
         <Card className="hover:-translate-y-0.5 hover:shadow-md">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Weakest Skills</CardTitle>
-            <CardDescription>Tap to focus your next session</CardDescription>
+            <CardTitle className="text-base">Focus Areas</CardTitle>
+            <CardDescription>Areas flagged for improvement</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2.5">
-            {WEAK_SKILLS.map(({ name, score, category }) => {
-              const active = activeSkills.has(name);
-              return (
-                <button
-                  key={name}
-                  onClick={() => toggleSkill(name)}
-                  className={[
-                    "group flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-all duration-150",
-                    active
-                      ? "border-primary/40 bg-primary/8 ring-1 ring-primary/20"
-                      : "border-border bg-transparent hover:border-primary/30 hover:bg-accent/40",
-                  ].join(" ")}
-                  aria-pressed={active}
-                >
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${skillDotColor(score)}`} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">{name}</p>
-                    <p className="text-[10px] text-muted-foreground" style={{ fontFamily: "var(--font-mono)" }}>
-                      {category}
-                    </p>
-                  </div>
-                  <span
-                    className={`shrink-0 text-sm font-bold tabular-nums ${scoreTailwind(score)}`}
-                    style={{ fontFamily: "var(--font-mono)" }}
+            {weakSkills.length > 0 ? (
+              weakSkills.slice(0, 6).map(({ name, count }) => {
+                const active = activeSkills.has(name);
+                return (
+                  <button
+                    key={name}
+                    onClick={() => toggleSkill(name)}
+                    className={[
+                      "group flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-all duration-150",
+                      active
+                        ? "border-primary/40 bg-primary/8 ring-1 ring-primary/20"
+                        : "border-border bg-transparent hover:border-primary/30 hover:bg-accent/40",
+                    ].join(" ")}
+                    aria-pressed={active}
                   >
-                    {score}
-                  </span>
-                </button>
-              );
-            })}
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">{name}</p>
+                      <p className="text-[10px] text-muted-foreground" style={{ fontFamily: "var(--font-mono)" }}>
+                        Flagged {count} time{count > 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="py-8 text-center text-xs text-muted-foreground">
+                <p>No weakness areas detected yet.</p>
+                <p className="mt-1">Complete mock sessions to generate customized focus recommendations.</p>
+              </div>
+            )}
+
             {activeSkills.size > 0 && (
               <div className="pt-1">
                 <Button
@@ -547,82 +613,83 @@ export default function Dashboard({ onNavigate, dark = false }: DashboardProps) 
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-base">Recent Interviews</CardTitle>
-              <CardDescription className="mt-0.5">Your last 8 sessions</CardDescription>
+              <CardDescription className="mt-0.5">Your practice sessions</CardDescription>
             </div>
             <Button variant="ghost" size="sm" onClick={() => onNavigate("results")}>
-              View all <ExternalLink size={12} />
+              View feedback <ExternalLink size={12} />
             </Button>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {/* Table header */}
-          <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-4 border-b border-border px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:grid-cols-[1fr_120px_90px_80px_90px_auto]" style={{ fontFamily: "var(--font-mono)" }}>
+          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 border-b border-border px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:grid-cols-[1fr_120px_90px_80px_auto]" style={{ fontFamily: "var(--font-mono)" }}>
             <span>Session</span>
-            <span className="hidden sm:block">Company</span>
+            <span className="hidden sm:block">Difficulty</span>
             <span className="hidden sm:block">Mode</span>
-            <span className="hidden sm:block">Duration</span>
             <span>Score</span>
             <span className="text-right">Action</span>
           </div>
 
-          {/* Rows */}
           <div className="divide-y divide-border">
-            {SESSIONS.map(({ id, date, role, company, mode, score, duration }) => (
-              <div
-                key={id}
-                className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-x-4 px-5 py-3.5 transition-colors hover:bg-muted/30 sm:grid-cols-[1fr_120px_90px_80px_90px_auto]"
-              >
-                {/* Role + date */}
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-foreground">{role}</p>
-                  <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--font-mono)" }}>
-                    {date}
-                  </p>
-                </div>
-
-                {/* Company */}
-                <span className="hidden truncate text-sm text-muted-foreground sm:block">
-                  {company}
-                </span>
-
-                {/* Mode */}
-                <div className="hidden items-center gap-1.5 sm:flex">
-                  <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs ${
-                    mode === "Text"
-                      ? "bg-primary/10 text-primary"
-                      : "bg-purple-600/10 text-purple-600 dark:text-purple-400"
-                  }`}>
-                    {mode === "Text" ? <FileText size={12} /> : <Mic size={12} />}
+            {sessions.length > 0 ? (
+              sessions.map(({ id, date, role, difficulty, mode, score }) => (
+                <div
+                  key={id}
+                  className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-4 px-5 py-3.5 transition-colors hover:bg-muted/30 sm:grid-cols-[1fr_120px_90px_80px_auto]"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">{role}</p>
+                    <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--font-mono)" }}>
+                      {date}
+                    </p>
                   </div>
-                  <span className="text-xs text-muted-foreground">{mode}</span>
-                </div>
 
-                {/* Duration */}
-                <span className="hidden text-xs tabular-nums text-muted-foreground sm:block" style={{ fontFamily: "var(--font-mono)" }}>
-                  {duration}
-                </span>
+                  <span className="hidden truncate text-sm text-muted-foreground sm:block">
+                    {difficulty}
+                  </span>
 
-                {/* Score */}
-                <div className="flex items-center">
-                  <Badge variant={scoreVariant(score)} className="tabular-nums" style={{ fontFamily: "var(--font-mono)" }}>
-                    {score}
-                  </Badge>
-                </div>
+                  <div className="hidden items-center gap-1.5 sm:flex">
+                    <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs ${
+                      mode === "Text"
+                        ? "bg-primary/10 text-primary"
+                        : "bg-purple-600/10 text-purple-600 dark:text-purple-400"
+                    }`}>
+                      {mode === "Text" ? <FileText size={12} /> : <Mic size={12} />}
+                    </div>
+                    <span className="text-xs text-muted-foreground">{mode}</span>
+                  </div>
 
-                {/* Action */}
-                <div className="flex justify-end">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 text-xs"
-                    onClick={() => onNavigate("results")}
-                  >
-                    <span className="hidden sm:inline">View Feedback</span>
-                    <ExternalLink size={11} className="sm:ml-1" />
-                  </Button>
+                  <div className="flex items-center">
+                    <Badge variant={scoreVariant(score)} className="tabular-nums" style={{ fontFamily: "var(--font-mono)" }}>
+                      {score !== null ? score : "Pending"}
+                    </Badge>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => onNavigate("results", { interviewId: id })}
+                    >
+                      <span className="hidden sm:inline">View Feedback</span>
+                      <ExternalLink size={11} className="sm:ml-1" />
+                    </Button>
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="py-12 text-center text-sm text-muted-foreground">
+                <p>No interviews created yet.</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => onNavigate("create-interview")}
+                >
+                  <Sparkles size={13} /> Create your first interview
+                </Button>
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>

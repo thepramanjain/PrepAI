@@ -59,6 +59,13 @@ def _question_to_engine_dict(q: dict) -> dict:
 def create_interview(data: InterviewCreate, user_id: str) -> Dict[str, Any]:
     doc = data.model_dump()
     doc["user_id"] = ObjectId(user_id)
+    if doc.get("resume_id"):
+        try:
+            doc["resume_id"] = ObjectId(doc["resume_id"])
+        except Exception:
+            doc["resume_id"] = None
+    else:
+        doc["resume_id"] = None
     doc["status"] = Status.draft
     doc["question_count"] = 0
     now = utc_now()

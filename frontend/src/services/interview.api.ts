@@ -9,12 +9,15 @@ import api from './api';
 // ── Payload / Response types ────────────────────────────────────────────
 
 export interface CreateInterviewPayload {
+  title: string;
   role: string;
   experience_level: string;
   skills: string[];
+  interview_type: string;
   difficulty: string;
   job_description?: string;
   mode: 'text' | 'voice';
+  resume_id?: string;
 }
 
 export interface InterviewDoc {

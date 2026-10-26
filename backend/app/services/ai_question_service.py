@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 from bson import ObjectId
 from google.genai import types
 import json
+import traceback
 
 from app.ai.gemini_client import gemini_wrapper
 from app.ai.prompts import INTERVIEW_QUESTION_SYSTEM_PROMPT
@@ -102,10 +103,11 @@ Difficulty: {interview.get('difficulty')}
         )
     except Exception as e:
         # e.g., Rate limits (429) or backend errors
+        traceback.print_exc()
         error_msg = str(e)
         if "429" in error_msg:
             raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="AI Service rate limit exceeded. Please try again later.")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to communicate with AI Service.")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to communicate with AI Service: {error_msg}")
 
     # 5. Parse and Validate Response
     if not response.text:

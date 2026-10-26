@@ -19,4 +19,7 @@ indexes = [
     IndexModel([("interview_id", ASCENDING)], unique=True, background=True),
     IndexModel([("user_id", ASCENDING)], background=True),
 ]
-feedback_collection.create_indexes(indexes)
+try:
+    feedback_collection.create_indexes(indexes)
+except Exception:
+    pass

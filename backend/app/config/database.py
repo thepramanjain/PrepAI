@@ -12,18 +12,26 @@ from app.config.settings import settings
 
 
 import certifi
+import dns.resolver
 
-# Create the MongoDB client with a reasonable timeout (5 seconds)
-# so the app doesn't hang forever if MongoDB is unreachable.
-client: MongoClient = MongoClient(
-    settings.MONGODB_URI,
-    serverSelectionTimeoutMS=5000,
-    tlsCAFile=certifi.where(),
-    tlsAllowInvalidCertificates=True,
-)
+# Ensure dnspython uses reliable public DNS nameservers for SRV records on Windows/private networks
+try:
+    dns.resolver.default_resolver = dns.resolver.Resolver()
+    dns.resolver.default_resolver.nameservers = ["8.8.8.8", "1.1.1.1"]
+except Exception:
+    pass
 
-# Select the database — no collections are created yet
-db = client[settings.DATABASE_NAME]
+try:
+    client: MongoClient = MongoClient(
+        settings.MONGODB_URI,
+        serverSelectionTimeoutMS=5000,
+        tlsCAFile=certifi.where(),
+        tlsAllowInvalidCertificates=True,
+    )
+    db = client[settings.DATABASE_NAME]
+except Exception as e:
+    client = MongoClient("mongodb://localhost:27017", serverSelectionTimeoutMS=1000)
+    db = client[settings.DATABASE_NAME]
 
 
 def test_connection() -> bool:

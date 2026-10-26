@@ -56,6 +56,7 @@ class InterviewCreate(BaseModel):
     difficulty: Difficulty
     job_description: Optional[str] = None
     mode: Mode
+    resume_id: Optional[str] = None
 
 
 class InterviewUpdate(BaseModel):

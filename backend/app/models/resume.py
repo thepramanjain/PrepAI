@@ -18,4 +18,7 @@ indexes = [
     IndexModel([("user_id", ASCENDING)], background=True),
     IndexModel([("created_at", DESCENDING)], background=True),
 ]
-resumes_collection.create_indexes(indexes)
+try:
+    resumes_collection.create_indexes(indexes)
+except Exception:
+    pass

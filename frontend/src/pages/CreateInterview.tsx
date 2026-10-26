@@ -18,11 +18,14 @@ import {
   FileText,
   ChevronDown,
   Plus,
+  Loader2,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/input";
 import { Card, CardContent } from "../components/ui/card";
 import type { Screen } from "../types";
+import * as interviewApi from "../services/interview.api";
+import { uploadResume } from "../services/resume.api";
 
 // ── Constants ─────────────────────────────────────────────────────────
 
@@ -366,15 +369,67 @@ export default function CreateInterview({ onNavigate }: CreateInterviewProps) {
   const [jobDescription, setJobDescription] = useState("");
   const [mode, setMode] = useState<"text" | "voice">("text");
   const [submitted, setSubmitted] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function addSkill(s: string) { setSkills((p) => [...p, s]); }
   function removeSkill(s: string) { setSkills((p) => p.filter((t) => t !== s)); }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitted(true);
+    setError(null);
     if (!role.trim()) return;
-    onNavigate(mode === "voice" ? "voice-interview" : "text-interview");
+
+    // Map to backend expected string enums
+    const diffMap: Record<string, string> = {
+      easy: "Easy",
+      medium: "Medium",
+      hard: "Hard",
+      expert: "Expert",
+    };
+
+    const expMap: Record<string, string> = {
+      entry: "0-1 years",
+      mid: "3-5 years",
+      senior: "5+ years",
+      staff: "5+ years",
+    };
+
+    setIsCreating(true);
+    try {
+      let resumeId: string | undefined = undefined;
+      if (resumeFile) {
+        try {
+          const uploaded = await uploadResume(resumeFile);
+          resumeId = uploaded.id;
+        } catch (uploadErr: any) {
+          console.error("Resume upload failed:", uploadErr);
+          const uploadMsg = uploadErr?.response?.data?.detail || "Failed to upload resume file. Please ensure it's a valid PDF or DOCX.";
+          setError(uploadMsg);
+          setIsCreating(false);
+          return;
+        }
+      }
+
+      const interview = await interviewApi.createInterview({
+        title: `${role} Interview`,
+        role,
+        experience_level: expMap[experience] || "3-5 years",
+        skills,
+        difficulty: diffMap[difficulty] || "Medium",
+        interview_type: "Technical",
+        job_description: jobDescription || undefined,
+        mode,
+        resume_id: resumeId,
+      });
+      onNavigate(mode === "voice" ? "voice-interview" : "text-interview", { interviewId: interview.id });
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.response?.data?.detail || "Failed to create interview. Please check backend connection.");
+    } finally {
+      setIsCreating(false);
+    }
   }
 
   const diff = DIFFICULTIES.find((d) => d.value === difficulty)!;
@@ -393,6 +448,19 @@ export default function CreateInterview({ onNavigate }: CreateInterviewProps) {
           Configure your session and PrepAI will generate a tailored question set.
         </p>
       </div>
+
+      {error && (
+        <div className="mb-6 flex items-center justify-between rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            className="ml-3 font-semibold hover:opacity-80"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} noValidate className="space-y-8">
 
@@ -578,8 +646,9 @@ export default function CreateInterview({ onNavigate }: CreateInterviewProps) {
               {diff.label} · {mode === "voice" ? "Voice" : "Text"} mode
             </span>
           </div>
-          <Button type="submit" size="lg" className="w-full sm:w-auto">
-            <Sparkles size={15} /> Generate Interview
+          <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={isCreating}>
+            {isCreating ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+            {isCreating ? "Creating..." : "Generate Interview"}
           </Button>
         </div>
 

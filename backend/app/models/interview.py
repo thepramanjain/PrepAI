@@ -20,4 +20,7 @@ indexes = [
     IndexModel([("created_at", DESCENDING)], background=True),
     IndexModel([("status", ASCENDING)], background=True),
 ]
-interviews_collection.create_indexes(indexes)
+try:
+    interviews_collection.create_indexes(indexes)
+except Exception:
+    pass

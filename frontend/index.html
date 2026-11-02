@@ -8,7 +8,21 @@
       <title>PrepAI — AI-Powered Interview Practice</title>
       <meta name="description" content="Practice technical and behavioral interviews with real-time AI feedback, voice coaching, and role-specific question banks. Land your dream job faster." />
       <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
-      
+      <script>
+        (function() {
+          try {
+            var stored = localStorage.getItem('prepai-theme') || localStorage.getItem('theme');
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (stored === 'dark' || (!stored && prefersDark)) {
+              document.documentElement.classList.add('dark');
+              document.documentElement.style.colorScheme = 'dark';
+            } else {
+              document.documentElement.classList.remove('dark');
+              document.documentElement.style.colorScheme = 'light';
+            }
+          } catch (e) {}
+        })();
+      </script>
     </head>
 
     <body>

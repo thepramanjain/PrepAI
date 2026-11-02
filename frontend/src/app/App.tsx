@@ -21,6 +21,7 @@ import Register from "../pages/Register";
 import TextInterview from "../screens/TextInterview";
 import VoiceInterview from "../screens/VoiceInterview";
 import { AuthProvider, useAuth } from "../context/AuthContext";
+import { ThemeProvider, useTheme } from "../context/ThemeContext";
 import { AUTHENTICATED_SCREENS, type Screen } from "../types";
 
 // ── Session state passed between screens ─────────────────────────────
@@ -54,14 +55,10 @@ function renderScreen(
 
 function AppInner() {
   const { isAuthenticated, isLoading, logout } = useAuth();
+  const { isDark } = useTheme();
   const [screen, setScreen] = useState<Screen>("landing");
   const [sessionState, setSessionState] = useState<SessionState>({});
-  const dark = true;
-
-  // Force dark mode on <html>
-  useEffect(() => {
-    document.documentElement.classList.add("dark");
-  }, []);
+  const dark = isDark;
 
   // Authenticated user tries to view public screens → dashboard
   useEffect(() => {
@@ -131,12 +128,14 @@ function AppInner() {
   );
 }
 
-// ── Root component: wraps everything in AuthProvider ─────────────────
+// ── Root component: wraps everything in ThemeProvider & AuthProvider ─
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppInner />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppInner />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

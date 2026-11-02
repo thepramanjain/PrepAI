@@ -7,6 +7,7 @@ import type { Screen } from "../types";
 
 interface DashboardProps {
   onNavigate: (screen: Screen) => void;
+  dark?: boolean;
 }
 
 const recentSessions = [
@@ -23,7 +24,7 @@ const readinessTopics = [
   { label: "Product Sense", value: 81, variant: "default" as const },
 ];
 
-export default function Dashboard({ onNavigate }: DashboardProps) {
+export default function Dashboard({ onNavigate, dark = false }: DashboardProps) {
   return (
     <div className="space-y-8 p-6">
       {/* Header row */}

@@ -1,4 +1,4 @@
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   --font-size: 16px;
@@ -23,7 +23,7 @@
   --destructive-foreground: #ffffff;
   --border: #e2e8f0;
   --input: transparent;
-  --input-background: #f8fafc;
+  --input-background: #ffffff;
   --switch-background: #cbd5e1;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
@@ -63,7 +63,7 @@
   --destructive-foreground: #ffffff;
   --border: #27272a;
   --input: #27272a;
-  --input-background: #0a0a0a;
+  --input-background: #141416;
   --switch-background: #3f3f46;
   --ring: #7c3aed;
   --font-weight-medium: 500;
@@ -131,6 +131,7 @@
 
   body {
     @apply bg-background text-foreground;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   /**

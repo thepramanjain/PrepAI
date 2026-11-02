@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "../context/AuthContext";
 import type { Screen } from "../types";
 
@@ -64,7 +65,7 @@ export default function Navbar({ currentScreen, onNavigate }: NavbarProps) {
   const links = isAuthenticated ? appLinks : publicLinks;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background">
+    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-sm">
       <div className="mx-auto flex h-14 max-w-screen-xl items-center gap-4 px-4 sm:px-6">
         {/* Logo */}
         <button
@@ -106,6 +107,9 @@ export default function Navbar({ currentScreen, onNavigate }: NavbarProps) {
 
         {/* Right cluster */}
         <div className="flex items-center gap-2">
+          {/* Dark / Light Mode Toggle */}
+          <ThemeToggle />
+
           {isAuthenticated ? (
             <>
               {/* Start Practice CTA */}
@@ -196,13 +200,21 @@ export default function Navbar({ currentScreen, onNavigate }: NavbarProps) {
                 {label}
               </button>
             ))}
-            {isAuthenticated && (
-              <div className="mt-2 border-t border-border pt-2">
+
+            <div className="mt-2 border-t border-border pt-2 flex flex-col gap-2">
+              <div className="flex items-center justify-between px-2 py-1.5 rounded-md bg-accent/40">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground" style={{ fontFamily: "var(--font-mono)" }}>
+                  Appearance
+                </span>
+                <ThemeToggle />
+              </div>
+
+              {isAuthenticated && (
                 <Button size="sm" onClick={() => onNavigate("create-interview")} className="w-full">
                   <Sparkles size={13} /> Start Practice
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </nav>
         </div>
       )}

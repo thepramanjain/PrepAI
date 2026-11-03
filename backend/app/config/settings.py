@@ -34,11 +34,15 @@ class Settings(BaseSettings):
     LIVEKIT_API_KEY: str = ""
     LIVEKIT_API_SECRET: str = ""
 
-    # OpenRouter — Agentic AI (Phase 10)
+    # OpenRouter — Agentic AI
     # Used for GPT-4o orchestration, tool calling, and career coaching.
     # NEVER expose this key to the frontend.
     OPENROUTER_API_KEY: str = ""
     OPENROUTER_MODEL: str = "openai/gpt-4o"
+    # Fallback model used automatically when the primary model hits retryable
+    # errors (429 rate limit, connection failures, 5xx server errors).
+    # Set to empty string to disable the fallback entirely.
+    OPENROUTER_FALLBACK_MODEL: str = "openai/gpt-4o-mini"
     OPENROUTER_SITE_URL: str = ""   # optional: sent as HTTP-Referer header
     OPENROUTER_APP_NAME: str = ""  # optional: sent as X-Title header
 

@@ -67,9 +67,12 @@ Used for interview-specific intelligence:
 - Interview evaluation
 - Voice interview intelligence
 
-### OpenRouter + GPT-4o
+### OpenRouter (GPT-4o + GPT-4o-mini Fallback)
 
 Used for the Agentic AI layer:
+
+- **Primary Model (openai/gpt-4o)**: Intent understanding, tool calling, agent orchestration, and career coaching.
+- **Automatic Fallback (openai/gpt-4o-mini)**: Seamlessly handles transient rate limits (429), timeouts, and 5xx server errors without user disruption or job failure. Permanent client errors (401/403/400/404) do not trigger fallback.
 
 - Intent understanding
 - Tool calling
@@ -571,6 +574,7 @@ JWT_SECRET=
 GEMINI_API_KEY=
 OPENROUTER_API_KEY=
 OPENROUTER_MODEL=openai/gpt-4o
+OPENROUTER_FALLBACK_MODEL=openai/gpt-4o-mini
 OPENROUTER_SITE_URL=http://localhost:3000
 OPENROUTER_APP_NAME=PrepAI
 LIVEKIT_URL=

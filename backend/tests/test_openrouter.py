@@ -80,7 +80,7 @@ class TestModelConfiguration:
     def test_site_url_and_app_name_optional(self):
         """OPENROUTER_SITE_URL and OPENROUTER_APP_NAME should be optional."""
         from app.config.settings import Settings
-        s = Settings(OPENROUTER_API_KEY="sk-x")
+        s = Settings(OPENROUTER_API_KEY="sk-x", _env_file=None)
         assert s.OPENROUTER_SITE_URL == ""
         assert s.OPENROUTER_APP_NAME == ""
 

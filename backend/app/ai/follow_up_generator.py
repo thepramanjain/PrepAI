@@ -88,20 +88,41 @@ Difficulty: {difficulty}
     if resume_text:
         user_prompt += f"\n--- RESUME TEXT (context only) ---\n{resume_text[:5000]}\n"
 
-    try:
-        response = client.models.generate_content(
-            model=model_name,
-            contents=user_prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=FOLLOW_UP_SYSTEM_PROMPT,
-                response_mime_type="application/json",
-                response_schema=FollowUpDecision,
-                temperature=0.5,
-            ),
-        )
-    except Exception as e:
-        print(f"[FollowUpGenerator] Gemini API error: {e}")
-        return None
+    models_to_try = [model_name]
+    for fb in ["gemini-3.5-flash", "gemini-flash-latest"]:
+        if fb not in models_to_try:
+            models_to_try.append(fb)
+
+    response = None
+    for candidate_model in models_to_try:
+        try:
+            response = client.models.generate_content(
+                model=candidate_model,
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=FOLLOW_UP_SYSTEM_PROMPT,
+                    response_mime_type="application/json",
+                    response_schema=FollowUpDecision,
+                    temperature=0.5,
+                ),
+            )
+            break
+        except Exception as e:
+            error_msg = str(e)
+            is_recoverable = (
+                "503" in error_msg
+                or "404" in error_msg
+                or "UNAVAILABLE" in error_msg
+                or "NOT_FOUND" in error_msg
+                or "disconnected" in error_msg
+                or "RemoteProtocolError" in error_msg
+                or "ConnectError" in error_msg
+                or "timed out" in error_msg.lower()
+            )
+            if is_recoverable and candidate_model != models_to_try[-1]:
+                continue
+            print(f"[FollowUpGenerator] Gemini API error: {e}")
+            return None
 
     if not response.text:
         return None

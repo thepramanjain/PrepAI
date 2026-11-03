@@ -14,10 +14,15 @@ from app.config.settings import settings
 import certifi
 import dns.resolver
 
-# Ensure dnspython uses reliable public DNS nameservers for SRV records on Windows/private networks
+# Ensure dnspython includes reliable public DNS nameservers for SRV records on Windows/private networks
 try:
-    dns.resolver.default_resolver = dns.resolver.Resolver()
-    dns.resolver.default_resolver.nameservers = ["8.8.8.8", "1.1.1.1"]
+    if dns.resolver.default_resolver is None:
+        dns.resolver.default_resolver = dns.resolver.Resolver()
+    existing_ns = list(dns.resolver.default_resolver.nameservers)
+    for fallback_ns in ["8.8.8.8", "1.1.1.1"]:
+        if fallback_ns not in existing_ns:
+            existing_ns.append(fallback_ns)
+    dns.resolver.default_resolver.nameservers = existing_ns
 except Exception:
     pass
 

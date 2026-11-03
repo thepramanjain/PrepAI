@@ -117,21 +117,45 @@ def evaluate_interview(
     user_prompt = build_evaluation_context(interview, questions, responses, resume_text)
 
     # 3. Call Gemini
-    try:
-        response = client.models.generate_content(
-            model=model_name,
-            contents=user_prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=INTERVIEW_EVALUATION_SYSTEM_PROMPT,
-                response_mime_type="application/json",
-                temperature=0.3,  # Lower temperature for more deterministic evaluation
-            ),
-        )
-    except Exception as e:
-        error_msg = str(e)
-        if "429" in error_msg:
-            raise RuntimeError("AI Service rate limit exceeded. Please try again later.")
-        raise RuntimeError(f"Failed to communicate with AI Service: {error_msg}")
+    models_to_try = [model_name]
+    for fb in ["gemini-3.5-flash", "gemini-flash-latest"]:
+        if fb not in models_to_try:
+            models_to_try.append(fb)
+
+    response = None
+    for candidate_model in models_to_try:
+        try:
+            response = client.models.generate_content(
+                model=candidate_model,
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=INTERVIEW_EVALUATION_SYSTEM_PROMPT,
+                    response_mime_type="application/json",
+                    temperature=0.3,  # Lower temperature for more deterministic evaluation
+                ),
+            )
+            break
+        except Exception as e:
+            error_msg = str(e)
+            is_recoverable = (
+                "503" in error_msg
+                or "404" in error_msg
+                or "UNAVAILABLE" in error_msg
+                or "NOT_FOUND" in error_msg
+                or "disconnected" in error_msg
+                or "RemoteProtocolError" in error_msg
+                or "ConnectError" in error_msg
+                or "timed out" in error_msg.lower()
+            )
+            if is_recoverable and candidate_model != models_to_try[-1]:
+                continue
+            if "401" in error_msg or "403" in error_msg or "UNAUTHENTICATED" in error_msg or "PERMISSION_DENIED" in error_msg or "API key not valid" in error_msg:
+                raise RuntimeError("AI Service authentication failed. Please check that GEMINI_API_KEY is valid.") from e
+            if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg or "rate limit" in error_msg.lower():
+                raise RuntimeError("AI Service rate limit exceeded. Please try again later.") from e
+            if "404" in error_msg or "NOT_FOUND" in error_msg:
+                raise RuntimeError(f"AI Service model '{candidate_model}' not found or unavailable. Please check GEMINI_MODEL setting.") from e
+            raise RuntimeError(f"Failed to communicate with AI Service: {error_msg}") from e
 
     # 4. Validate the response is not empty
     if not response.text:

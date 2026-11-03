@@ -90,24 +90,47 @@ Difficulty: {interview.get('difficulty')}
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="AI Service is currently unconfigured or unavailable")
 
-    try:
-        response = client.models.generate_content(
-            model=model_name,
-            contents=user_prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                response_mime_type="application/json",
-                response_schema=GeneratedQuestionList,
-                temperature=0.7,
-            ),
-        )
-    except Exception as e:
-        # e.g., Rate limits (429) or backend errors
-        traceback.print_exc()
-        error_msg = str(e)
-        if "429" in error_msg:
-            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="AI Service rate limit exceeded. Please try again later.")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to communicate with AI Service: {error_msg}")
+    models_to_try = [model_name]
+    for fb in ["gemini-3.5-flash", "gemini-flash-latest"]:
+        if fb not in models_to_try:
+            models_to_try.append(fb)
+
+    response = None
+    for candidate_model in models_to_try:
+        try:
+            response = client.models.generate_content(
+                model=candidate_model,
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    response_mime_type="application/json",
+                    response_schema=GeneratedQuestionList,
+                    temperature=0.7,
+                ),
+            )
+            break
+        except Exception as e:
+            traceback.print_exc()
+            error_msg = str(e)
+            is_recoverable = (
+                "503" in error_msg
+                or "404" in error_msg
+                or "UNAVAILABLE" in error_msg
+                or "NOT_FOUND" in error_msg
+                or "disconnected" in error_msg
+                or "RemoteProtocolError" in error_msg
+                or "ConnectError" in error_msg
+                or "timed out" in error_msg.lower()
+            )
+            if is_recoverable and candidate_model != models_to_try[-1]:
+                continue
+            if "401" in error_msg or "403" in error_msg or "UNAUTHENTICATED" in error_msg or "PERMISSION_DENIED" in error_msg or "API key not valid" in error_msg:
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="AI Service authentication failed. Please check that GEMINI_API_KEY is valid.")
+            if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg or "quota" in error_msg.lower():
+                raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="AI Service rate limit or quota exceeded. Please try again later.")
+            if "404" in error_msg or "NOT_FOUND" in error_msg:
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"AI Service model '{candidate_model}' not found or unavailable. Please check GEMINI_MODEL setting.")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to communicate with AI Service: {error_msg}")
 
     # 5. Parse and Validate Response
     if not response.text:

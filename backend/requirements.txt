@@ -41,6 +41,6 @@ livekit-api~=0.8
 
 # --- Agentic AI (Phase 10) ---
 # openai: OpenAI-compatible SDK used via OpenRouter base URL.
-# langgraph: State-machine orchestration for multi-agent workflows.
+# LangGraph has been removed — the agent workflow now uses a native
+# Python dispatcher (app/graph/workflow.py) with the same .invoke() interface.
 openai>=1.30.0
-langgraph>=0.2.0

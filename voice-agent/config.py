@@ -12,7 +12,6 @@ Security:
 
 import os
 from dataclasses import dataclass
-
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -31,7 +30,8 @@ class VoiceAgentConfig:
 
     # Gemini (via livekit-plugins-google)
     gemini_api_key: str
-    gemini_model: str
+    gemini_live_model: str
+    gemini_voice: str
 
     # PrepAI backend (for fetching interview context)
     backend_url: str
@@ -56,15 +56,18 @@ def load_config() -> VoiceAgentConfig:
             "Copy voice-agent/.env.example to voice-agent/.env and fill in the values."
         )
 
+    live_model = (
+        os.getenv("GEMINI_LIVE_MODEL")
+        or os.getenv("GEMINI_MODEL")
+        or "gemini-3.8-live"
+    )
+
     return VoiceAgentConfig(
         livekit_url=required["LIVEKIT_URL"],
         livekit_api_key=required["LIVEKIT_API_KEY"],
         livekit_api_secret=required["LIVEKIT_API_SECRET"],
         gemini_api_key=required["GEMINI_API_KEY"],
-        gemini_model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash-native-audio-preview"),
-        backend_url=os.getenv("PREPAI_BACKEND_URL", "http://localhost:8000"),
+        gemini_live_model=live_model,
+        gemini_voice=os.getenv("GEMINI_VOICE", "Puck"),
+        backend_url=os.getenv("PREPAI_BACKEND_URL", "http://localhost:8000").rstrip("/"),
     )
-
-
-# Shared config instance (loaded once at import time)
-config = load_config()

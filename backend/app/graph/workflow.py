@@ -1,24 +1,24 @@
 """
 app/graph/workflow.py
 
-LangGraph workflow assembly for the PrepAI agent system.
+Native Python dispatcher for the PrepAI agent system.
+
+Replaces the previous LangGraph StateGraph with a lightweight two-step pipeline
+that preserves the identical .invoke() interface consumed by agent_service.
 
 Architecture:
-    START
-      ↓
-    orchestrator_node   ← GPT-4o determines intent, sets next_action
-      ↓ (conditional)
-    ┌─────────────────────────────────────────────┐
-    │ question_node  │ interview_node             │
-    │ evaluation_node│ analytics_node│ coach_node │
-    └─────────────────────────────────────────────┘
-      ↓
-    END
+    orchestrator_node   <- GPT-4o determines intent, sets next_action
+      | (route_from_orchestrator)
+      v
+    +-----------------------------------------------+
+    | question_node  | interview_node               |
+    | evaluation_node| analytics_node | coach_node  |
+    +-----------------------------------------------+
 
-The compiled workflow is a singleton used by agent_service.
+No external orchestration framework is required.
 """
 
-from langgraph.graph import StateGraph, END
+import logging
 
 from app.graph.state import AgentState
 from app.graph.nodes import (
@@ -31,44 +31,78 @@ from app.graph.nodes import (
 )
 from app.graph.edges import route_from_orchestrator, ACTION_TO_NODE
 
+logger = logging.getLogger(__name__)
 
-def build_workflow():
+# ---------------------------------------------------------------------------
+# Node registry — maps routing target names to their functions
+# ---------------------------------------------------------------------------
+
+_NODE_MAP: dict = {
+    "question_node": question_node,
+    "interview_node": interview_node,
+    "evaluation_node": evaluation_node,
+    "analytics_node": analytics_node,
+    "coach_node": coach_node,
+}
+
+
+class _NativeWorkflow:
     """
-    Construct and compile the LangGraph StateGraph.
+    Lightweight two-step pipeline replacing LangGraph StateGraph.
 
-    Returns:
-        A compiled LangGraph workflow ready for .invoke() calls.
+    Preserves the .invoke() interface so agent_service.py requires no changes.
+
+    Step 1: orchestrator_node  — determines intent, sets next_action
+    Step 2: specialist node    — determined by route_from_orchestrator()
     """
-    builder = StateGraph(AgentState)
 
-    # --- Register nodes ---
-    builder.add_node("orchestrator_node", orchestrator_node)
-    builder.add_node("question_node", question_node)
-    builder.add_node("interview_node", interview_node)
-    builder.add_node("evaluation_node", evaluation_node)
-    builder.add_node("analytics_node", analytics_node)
-    builder.add_node("coach_node", coach_node)
+    def invoke(self, initial_state: AgentState) -> AgentState:
+        """
+        Execute the two-step pipeline and return the final state.
 
-    # --- Entry point ---
-    builder.set_entry_point("orchestrator_node")
+        Args:
+            initial_state: Initial AgentState dict (user_id, messages, etc.)
 
-    # --- Conditional routing from orchestrator ---
-    # Maps each possible return value of route_from_orchestrator() to a node
-    conditional_map = {node_name: node_name for node_name in ACTION_TO_NODE.values()}
-    conditional_map["__end__"] = END
+        Returns:
+            Final AgentState dict with results merged in.
+        """
+        state: dict = dict(initial_state)
 
-    builder.add_conditional_edges(
-        "orchestrator_node",
-        route_from_orchestrator,
-        conditional_map,
-    )
+        # --- Step 1: Orchestrator determines intent ---
+        try:
+            orch_output = orchestrator_node(state)
+            state.update(orch_output)
+        except Exception as exc:
+            logger.error("orchestrator_node raised an exception: %s", exc)
+            state["error"] = str(exc)
+            return state  # type: ignore[return-value]
 
-    # --- All specialist nodes terminate after completing their work ---
-    for node_name in ACTION_TO_NODE.values():
-        builder.add_edge(node_name, END)
+        # --- Step 2: Route to the appropriate specialist node ---
+        target = route_from_orchestrator(state)
 
-    return builder.compile()
+        if target == "__end__":
+            # Orchestrator decided no specialist is needed (or action was invalid)
+            logger.debug("Workflow ended after orchestrator (target=__end__)")
+            return state  # type: ignore[return-value]
+
+        node_fn = _NODE_MAP.get(target)
+        if node_fn is None:
+            logger.warning("No node registered for routing target %r", target)
+            state["error"] = f"Unknown routing target: {target}"
+            return state  # type: ignore[return-value]
+
+        try:
+            specialist_output = node_fn(state)
+            state.update(specialist_output)
+        except Exception as exc:
+            logger.error("Specialist node %r raised an exception: %s", target, exc)
+            state["error"] = str(exc)
+
+        return state  # type: ignore[return-value]
 
 
-# Singleton compiled workflow — shared across requests
-agent_workflow = build_workflow()
+# ---------------------------------------------------------------------------
+# Singleton workflow — shared across requests (identical interface to before)
+# ---------------------------------------------------------------------------
+
+agent_workflow = _NativeWorkflow()

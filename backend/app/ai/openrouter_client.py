@@ -63,9 +63,9 @@ logger = logging.getLogger(__name__)
 _OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 # HTTP status codes that should trigger a fallback attempt.
-_RETRYABLE_STATUS_CODES: frozenset[int] = frozenset({500, 502, 503, 504})
+_RETRYABLE_STATUS_CODES: frozenset[int] = frozenset({402, 500, 502, 503, 504})
 
-# Error types that are permanent — never fall back on these.
+# Error types that are permanent — never fall back on these (unless credit/token error).
 _PERMANENT_ERROR_TYPES = (
     AuthenticationError,    # 401
     PermissionDeniedError,  # 403
@@ -76,20 +76,39 @@ _PERMANENT_ERROR_TYPES = (
 
 def _is_retryable(exc: Exception) -> bool:
     """
-    Return True when *exc* represents a transient failure that may resolve
-    if we retry with a different (or same) model.
+    Return True when *exc* represents a failure that can resolve
+    if we fall back to a cheaper/different model (such as GPT-4o-mini).
 
-    Permanent errors (auth, bad request, model not found) return False so
-    the caller can surface a meaningful error immediately.
+    Includes:
+    - HTTP 429 (RateLimitError)
+    - Network / timeout errors (APIConnectionError, APITimeoutError)
+    - HTTP 5xx server errors (500, 502, 503, 504)
+    - HTTP 402 Payment Required / token affordability errors (where GPT-4o-mini succeeds)
     """
-    if isinstance(exc, _PERMANENT_ERROR_TYPES):
-        return False
+    err_str = str(exc).lower()
+
+    # Credit / token limit failures (e.g. 402 or "exceeds affordable token limit")
+    # should ALWAYS fall back to GPT-4o-mini which is 15-20x cheaper.
+    if (
+        "402" in err_str
+        or "affordable token limit" in err_str
+        or "exceeds the affordable" in err_str
+        or "insufficient credits" in err_str
+    ):
+        return True
+
     if isinstance(exc, RateLimitError):
         return True
+
     if isinstance(exc, (APIConnectionError, APITimeoutError)):
         return True
+
     if isinstance(exc, APIStatusError):
         return exc.status_code in _RETRYABLE_STATUS_CODES
+
+    if isinstance(exc, _PERMANENT_ERROR_TYPES):
+        return False
+
     return False
 
 

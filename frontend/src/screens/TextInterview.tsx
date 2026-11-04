@@ -74,7 +74,7 @@ export default function TextInterview({ onNavigate, interviewId }: TextInterview
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const activeInterviewId = useRef<string | null>(interviewId ?? null);
 
-  // ── Bootstrap: start the interview ─────────────────────────────────
+  // ── Bootstrap: start the interview (resilient to page refreshes) ────
   const bootstrap = useCallback(async () => {
     setPhase("loading");
     setError(null);
@@ -85,14 +85,41 @@ export default function TextInterview({ onNavigate, interviewId }: TextInterview
       const id = activeInterviewId.current;
       if (!id) throw new Error("No interview ID. Please create an interview first.");
 
-      // Generate AI questions first
-      await interviewApi.generateQuestions(id, 5);
+      // Check current interview status first to handle page refreshes seamlessly
+      const interview = await interviewApi.getInterview(id);
+
+      if (interview.status === "completed") {
+        setPhase("completed");
+        return;
+      }
+
+      if (interview.status === "in_progress") {
+        const curData = await interviewApi.getCurrentQuestion(id);
+        const q = curData.current_question || (curData as any).question;
+        if (!q) throw new Error("Could not load current question.");
+        setCurrentQuestion(q);
+        setQuestionNumber(q.question_number ?? 1);
+        setTotalQuestions(interview.question_count || 5);
+        setQuestionStartedAt(Date.now());
+        setPhase("ready");
+        setTimeout(() => textareaRef.current?.focus(), 100);
+        return;
+      }
+
+      // Interview is draft:
+      // Ensure questions exist; generate if needed
+      let existingQuestions = await interviewApi.getQuestions(id);
+      if (!existingQuestions || existingQuestions.length === 0) {
+        await interviewApi.generateQuestions(id, 5);
+        existingQuestions = await interviewApi.getQuestions(id);
+      }
 
       // Start the interview engine
       const startData = await interviewApi.startInterview(id);
-      setCurrentQuestion(startData.current_question);
-      setQuestionNumber(startData.question_number);
-      setTotalQuestions(startData.total_questions);
+      const q = startData.current_question || (startData as any).question;
+      setCurrentQuestion(q);
+      setQuestionNumber(q?.question_number ?? 1);
+      setTotalQuestions(existingQuestions.length || 5);
       setQuestionStartedAt(Date.now());
       setPhase("ready");
       setTimeout(() => textareaRef.current?.focus(), 100);

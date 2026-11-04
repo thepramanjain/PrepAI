@@ -219,6 +219,53 @@ def test_generate_questions_gemini_503_fallback_to_openrouter(
     assert mock_or_client.chat_completion.called
 
 
+
+# ---------------------------------------------------------------------------
+# 3b. OpenRouter 402 on primary model -> Fallback to GPT-4o-mini
+# ---------------------------------------------------------------------------
+
+@patch("app.ai.openrouter_client.openrouter_client._call_once")
+@patch("app.services.ai_question_service.gemini_wrapper.get_client")
+def test_generate_questions_openrouter_402_fallback_to_mini(
+    mock_gemini_client, mock_or_call_once, token, test_interview_id
+):
+    from openai import APIStatusError
+    from unittest.mock import MagicMock
+    from app.ai.openrouter_client import openrouter_client
+
+    # 1. Gemini fails with 503
+    mock_gemini = MagicMock()
+    mock_gemini.models.generate_content.side_effect = Exception("503 UNAVAILABLE: high demand")
+    mock_gemini_client.return_value = mock_gemini
+
+    # 2. OpenRouter primary (GPT-4o) fails with 402 affordable limit
+    payment_error = APIStatusError(
+        message="402 Payment Required: max_tokens exceeds the affordable token limit of 3907",
+        response=MagicMock(status_code=402),
+        body={},
+    )
+    # 3. OpenRouter fallback (GPT-4o-mini) succeeds
+    mini_response = MagicMock()
+    mini_choice = MagicMock()
+    mini_choice.message.content = MOCK_OPENROUTER_RESPONSE_JSON
+    mini_response.choices = [mini_choice]
+
+    mock_or_call_once.side_effect = [payment_error, mini_response]
+
+    with patch.object(openrouter_client, "_client", MagicMock()):
+        with patch.object(openrouter_client, "api_key", "sk-test"):
+            response = client.post(
+                f"/api/ai/interviews/{test_interview_id}/generate-questions",
+                json={"question_count": 2},
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+    assert response.status_code == 201
+    data = response.json()
+    assert data["count"] == 2
+    assert data["questions"][0]["source"] == "openrouter"
+    assert mock_or_call_once.call_count == 2
+
 # ---------------------------------------------------------------------------
 # 4. OpenRouter structured output parsing and difficulty normalization
 # ---------------------------------------------------------------------------

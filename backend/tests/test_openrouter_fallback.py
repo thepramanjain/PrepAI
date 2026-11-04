@@ -90,6 +90,14 @@ def _server_error(status_code: int = 503) -> APIStatusError:
     )
 
 
+def _payment_required_error() -> APIStatusError:
+    return APIStatusError(
+        message="Payment required: max_tokens exceeds the affordable token limit of 3907",
+        response=MagicMock(status_code=402),
+        body={},
+    )
+
+
 def _auth_error() -> AuthenticationError:
     return AuthenticationError(
         message="Invalid API key",
@@ -223,6 +231,21 @@ class TestServerErrorFallback:
 
         result = client.chat_completion(messages=[{"role": "user", "content": "Hi"}])
         assert result.choices[0].message.content == "fallback ok"
+
+
+class TestPaymentRequiredFallback:
+    """Primary returns 402 / credit limit error → cheaper fallback model is used."""
+
+    def test_402_triggers_fallback(self):
+        client = _make_client()
+        client._client.chat.completions.create.side_effect = [
+            _payment_required_error(),
+            _make_response("mini fallback ok"),
+        ]
+
+        result = client.chat_completion(messages=[{"role": "user", "content": "Hi"}])
+        assert result.choices[0].message.content == "mini fallback ok"
+        assert client._client.chat.completions.create.call_count == 2
 
 
 class TestBothModelsFail:

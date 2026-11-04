@@ -88,6 +88,14 @@ export async function getInterview(id: string): Promise<InterviewDoc> {
   return data;
 }
 
+export async function getQuestions(interviewId: string): Promise<QuestionDoc[]> {
+  const { data } = await api.get<{ items: QuestionDoc[] } | QuestionDoc[]>(
+    `/api/interviews/${interviewId}/questions`,
+  );
+  if (Array.isArray(data)) return data;
+  return (data as any)?.items || [];
+}
+
 // ── AI Question Generation ───────────────────────────────────────────────
 
 export async function generateQuestions(

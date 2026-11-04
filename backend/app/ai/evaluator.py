@@ -30,6 +30,16 @@ _JD_LIMIT = 1000
 _ANSWER_LIMIT = 2000
 
 
+def _get_openrouter_client():
+    """Dynamically get OpenRouter client to preserve AST isolation while enabling fallback."""
+    try:
+        import importlib
+        mod = importlib.import_module("app.ai.openrouter_client")
+        return getattr(mod, "openrouter_client", None)
+    except Exception:
+        return None
+
+
 def build_evaluation_context(
     interview: Dict[str, Any],
     questions: List[Dict[str, Any]],
@@ -149,6 +159,33 @@ def evaluate_interview(
             )
             if is_recoverable and candidate_model != models_to_try[-1]:
                 continue
+
+            # Fall back to OpenRouter if Gemini fails
+            or_client = _get_openrouter_client()
+            if or_client and or_client.is_configured():
+                try:
+                    or_resp = or_client.chat_completion(
+                        messages=[
+                            {"role": "system", "content": INTERVIEW_EVALUATION_SYSTEM_PROMPT},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                        temperature=0.3,
+                        max_tokens=3500,
+                        response_format={"type": "json_object"},
+                    )
+                    choice = or_resp.choices[0] if getattr(or_resp, "choices", None) else None
+                    content_str = choice.message.content if choice and hasattr(choice, "message") else ""
+                    if content_str:
+                        clean_content = content_str.strip()
+                        if clean_content.startswith("```"):
+                            import re
+                            clean_content = re.sub(r"^```(?:json)?\s*", "", clean_content, flags=re.IGNORECASE)
+                            clean_content = re.sub(r"\s*```$", "", clean_content).strip()
+                        raw_data = json.loads(clean_content)
+                        return GeneratedEvaluation(**raw_data)
+                except Exception:
+                    pass
+
             if "401" in error_msg or "403" in error_msg or "UNAUTHENTICATED" in error_msg or "PERMISSION_DENIED" in error_msg or "API key not valid" in error_msg:
                 raise RuntimeError("AI Service authentication failed. Please check that GEMINI_API_KEY is valid.") from e
             if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg or "rate limit" in error_msg.lower():

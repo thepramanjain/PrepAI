@@ -298,7 +298,7 @@ Difficulty: {interview.get('difficulty')}
                 or_resp = openrouter_client.chat_completion(
                     messages=messages,
                     temperature=0.7,
-                    max_tokens=4096,
+                    max_tokens=3500,
                     response_format={"type": "json_object"},
                 )
                 choices = getattr(or_resp, "choices", None)

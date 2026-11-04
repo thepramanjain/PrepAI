@@ -311,10 +311,15 @@ def engine_start_interview(interview_id: str, user_id: str) -> dict:
         }}
     )
 
+    q_dict = _question_to_engine_dict(first_question)
+    total_q = questions_collection.count_documents({"interview_id": interview["_id"]})
     return {
         "interview_id": str(interview["_id"]),
         "status": "in_progress",
-        "current_question": _question_to_engine_dict(first_question),
+        "current_question": q_dict,
+        "question": q_dict,
+        "question_number": first_question.get("question_number", 1),
+        "total_questions": total_q,
     }
 
 
@@ -342,9 +347,14 @@ def engine_get_current_question(interview_id: str, user_id: str) -> dict:
             detail="Current question not found in database."
         )
 
+    q_dict = _question_to_engine_dict(question)
+    total_q = questions_collection.count_documents({"interview_id": interview["_id"]})
     return {
         "interview_id": str(interview["_id"]),
-        "question": _question_to_engine_dict(question),
+        "question": q_dict,
+        "current_question": q_dict,
+        "question_number": question.get("question_number", 1),
+        "total_questions": total_q,
     }
 
 
@@ -492,10 +502,16 @@ def engine_next_question(interview_id: str, user_id: str) -> dict:
                     "updated_at": now,
                 }}
             )
+            fu_dict = _question_to_engine_dict(follow_up_doc)
+            total_q = questions_collection.count_documents({"interview_id": interview["_id"]})
             return {
                 "interview_id": str(interview["_id"]),
                 "status": "in_progress",
-                "question": _question_to_engine_dict(follow_up_doc),
+                "question": fu_dict,
+                "current_question": fu_dict,
+                "completed": False,
+                "question_number": follow_up_doc.get("question_number"),
+                "total_questions": total_q,
                 "message": None,
             }
 
@@ -526,10 +542,16 @@ def engine_next_question(interview_id: str, user_id: str) -> dict:
                 "updated_at": now,
             }}
         )
+        next_dict = _question_to_engine_dict(next_question)
+        total_q = len(all_questions)
         return {
             "interview_id": str(interview["_id"]),
             "status": "in_progress",
-            "question": _question_to_engine_dict(next_question),
+            "question": next_dict,
+            "current_question": next_dict,
+            "completed": False,
+            "question_number": next_question.get("question_number"),
+            "total_questions": total_q,
             "message": None,
         }
 
@@ -546,9 +568,14 @@ def engine_next_question(interview_id: str, user_id: str) -> dict:
         }}
     )
 
+    total_q = len(all_questions)
     return {
         "interview_id": str(interview["_id"]),
         "status": "completed",
+        "completed": True,
         "question": None,
+        "current_question": None,
+        "question_number": None,
+        "total_questions": total_q,
         "message": "Interview completed successfully",
     }

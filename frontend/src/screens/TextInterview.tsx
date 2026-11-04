@@ -173,15 +173,21 @@ export default function TextInterview({ onNavigate, interviewId }: TextInterview
     try {
       const next = await interviewApi.nextQuestion(activeInterviewId.current);
 
-      if (next.completed) {
+      const isCompleted =
+        Boolean(next.completed) ||
+        (next as any).status === "completed" ||
+        (!(next as any).question && !next.current_question);
+
+      if (isCompleted) {
         setFinalScore(next.final_score ?? null);
         setPhase("completed");
         return;
       }
 
-      if (next.current_question) {
-        setCurrentQuestion(next.current_question);
-        setQuestionNumber(next.question_number ?? questionNumber + 1);
+      const nextQ = next.current_question || (next as any).question;
+      if (nextQ) {
+        setCurrentQuestion(nextQ);
+        setQuestionNumber(next.question_number ?? nextQ.question_number ?? questionNumber + 1);
         setTotalQuestions(next.total_questions ?? totalQuestions);
         setQuestionStartedAt(Date.now());
       }

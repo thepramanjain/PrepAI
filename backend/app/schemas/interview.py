@@ -117,11 +117,17 @@ class StartInterviewResponse(BaseModel):
     interview_id: str
     status: str
     current_question: EngineQuestionDetail
+    question: Optional[EngineQuestionDetail] = None
+    question_number: Optional[int] = None
+    total_questions: Optional[int] = None
 
 
 class CurrentQuestionResponse(BaseModel):
     interview_id: str
     question: EngineQuestionDetail
+    current_question: Optional[EngineQuestionDetail] = None
+    question_number: Optional[int] = None
+    total_questions: Optional[int] = None
 
 
 class SubmitAnswerRequest(BaseModel):
@@ -142,4 +148,8 @@ class NextQuestionResponse(BaseModel):
     interview_id: str
     status: str
     question: Optional[EngineQuestionDetail] = None
+    current_question: Optional[EngineQuestionDetail] = None
+    completed: Optional[bool] = False
+    question_number: Optional[int] = None
+    total_questions: Optional[int] = None
     message: Optional[str] = None

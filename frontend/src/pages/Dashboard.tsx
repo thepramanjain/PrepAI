@@ -396,9 +396,18 @@ export default function Dashboard({ onNavigate, dark = false }: DashboardProps) 
             Track your performance, review recent interviews, and sharpen your skills.
           </p>
         </div>
-        <Button onClick={() => onNavigate("create-interview")}>
-          <Target size={14} /> New Interview
-        </Button>
+        <div className="flex items-center gap-2.5">
+          <Button
+            variant="outline"
+            onClick={() => onNavigate("coach")}
+            className="border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 gap-1.5"
+          >
+            <Sparkles size={14} className="text-indigo-500" /> AI Career Coach
+          </Button>
+          <Button onClick={() => onNavigate("create-interview")}>
+            <Target size={14} /> New Interview
+          </Button>
+        </div>
       </div>
 
       {/* ── Metric cards ────────────────────────────────────────── */}
@@ -552,9 +561,19 @@ export default function Dashboard({ onNavigate, dark = false }: DashboardProps) 
 
         {/* Focus Areas */}
         <Card className="hover:-translate-y-0.5 hover:shadow-md">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Focus Areas</CardTitle>
-            <CardDescription>Areas flagged for improvement</CardDescription>
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-base">Focus Areas</CardTitle>
+              <CardDescription>Areas flagged for improvement</CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onNavigate("coach")}
+              className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 hover:bg-indigo-500/10 gap-1"
+            >
+              <Sparkles size={13} /> Coach Me
+            </Button>
           </CardHeader>
           <CardContent className="space-y-2.5">
             {weakSkills.length > 0 ? (

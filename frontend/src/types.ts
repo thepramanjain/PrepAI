@@ -7,7 +7,8 @@ export type Screen =
   | "text-interview"
   | "voice-interview"
   | "results"
-  | "analytics";
+  | "analytics"
+  | "coach";
 
 export const AUTHENTICATED_SCREENS: Screen[] = [
   "dashboard",
@@ -16,4 +17,5 @@ export const AUTHENTICATED_SCREENS: Screen[] = [
   "voice-interview",
   "results",
   "analytics",
+  "coach",
 ];

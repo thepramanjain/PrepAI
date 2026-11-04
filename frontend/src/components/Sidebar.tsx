@@ -9,6 +9,7 @@ import {
   ChevronRight,
   PlusCircle,
   BrainCircuit,
+  Sparkles,
 } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import { Badge } from "./ui/badge";
@@ -29,12 +30,11 @@ interface NavItem {
 
 const primaryNav: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", screen: "dashboard" },
+  { icon: Sparkles, label: "AI Coach", screen: "coach", badge: "Agent" },
   { icon: PlusCircle, label: "Practice", screen: "create-interview" },
   { icon: Clock, label: "History", screen: "results" },
   { icon: BarChart3, label: "Analytics", screen: "analytics" },
 ];
-
-
 
 function getInitials(name?: string) {
   if (!name) return "U";
@@ -98,7 +98,7 @@ export default function Sidebar({ currentScreen, onNavigate }: SidebarProps) {
         collapsed ? "w-[60px]" : "w-[220px]"
       )}
     >
-      {/* Logo area (mirrors Navbar logo for standalone sidebar context) */}
+      {/* Logo area */}
       <div
         className={twMerge(
           "flex h-14 shrink-0 items-center border-b border-border px-3",
@@ -137,7 +137,6 @@ export default function Sidebar({ currentScreen, onNavigate }: SidebarProps) {
             onClick={() => onNavigate(item.screen)}
           />
         ))}
-
       </nav>
 
       {/* User card */}

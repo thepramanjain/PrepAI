@@ -16,6 +16,7 @@ import Dashboard from "../pages/Dashboard";
 import CreateInterview from "../pages/CreateInterview";
 import InterviewResult from "../pages/InterviewResult";
 import AnalyticsPage from "../pages/Analytics";
+import Coach from "../pages/Coach";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
 import TextInterview from "../screens/TextInterview";
@@ -48,6 +49,7 @@ function renderScreen(
     case "voice-interview":  return <VoiceInterview onNavigate={onNavigate} interviewId={sessionState.interviewId} />;
     case "results":          return <InterviewResult onNavigate={onNavigate} dark={dark} interviewId={sessionState.interviewId} />;
     case "analytics":        return <AnalyticsPage onNavigate={onNavigate} dark={dark} />;
+    case "coach":            return <Coach onNavigate={onNavigate} dark={dark} />;
   }
 }
 

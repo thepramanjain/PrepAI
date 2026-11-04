@@ -46,6 +46,7 @@ def _question_to_engine_dict(q: dict) -> dict:
         "id": str(q["_id"]),
         "question_number": q["question_number"],
         "question": q["question"],
+        "text": q.get("question", ""),
         "category": q.get("category", "General"),
         "difficulty": q.get("difficulty", "Medium"),
         "question_type": q.get("question_type", "primary"),

@@ -321,13 +321,13 @@ export default function TextInterview({ onNavigate, interviewId }: TextInterview
             className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3"
             style={{ fontFamily: "var(--font-mono)" }}
           >
-            Q{questionNumber} · {currentQuestion.type?.replace(/_/g, " ") ?? "Interview Question"}
+            Q{questionNumber} · {currentQuestion.category || currentQuestion.question_type?.replace(/_/g, " ") || currentQuestion.type?.replace(/_/g, " ") || "Interview Question"}
           </p>
           <p
             className="text-lg font-semibold leading-relaxed text-foreground"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            {currentQuestion.text}
+            {currentQuestion.question || currentQuestion.text}
           </p>
         </div>
       )}

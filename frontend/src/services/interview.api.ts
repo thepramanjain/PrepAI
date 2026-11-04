@@ -35,11 +35,15 @@ export interface InterviewDoc {
 
 export interface QuestionDoc {
   id: string;
-  interview_id: string;
-  text: string;
-  type: string;
+  interview_id?: string;
+  question?: string;
+  text?: string;
+  category?: string;
+  question_type?: string;
+  type?: string;
   difficulty?: string;
-  order: number;
+  question_number?: number;
+  order?: number;
 }
 
 export interface StartInterviewResponse {

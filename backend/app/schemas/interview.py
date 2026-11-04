@@ -108,6 +108,7 @@ class EngineQuestionDetail(BaseModel):
     id: str
     question_number: int
     question: str
+    text: Optional[str] = None
     category: str
     difficulty: Difficulty
     question_type: str = "primary"

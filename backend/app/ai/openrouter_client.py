@@ -171,6 +171,7 @@ class OpenRouterClient:
         tool_choice: str | dict = "auto",
         temperature: float = 0.3,
         max_tokens: int = 2048,
+        response_format: dict | None = None,
     ) -> object:
         """
         Send a chat completion request to OpenRouter.
@@ -181,11 +182,12 @@ class OpenRouterClient:
         without attempting the fallback.
 
         Args:
-            messages:     Conversation history in OpenAI message format.
-            tools:        Optional list of tool definitions (JSON schema).
-            tool_choice:  "auto" | "none" | "required" — default "auto".
-            temperature:  Sampling temperature (default 0.3).
-            max_tokens:   Maximum tokens in the response.
+            messages:        Conversation history in OpenAI message format.
+            tools:           Optional list of tool definitions (JSON schema).
+            tool_choice:     "auto" | "none" | "required" — default "auto".
+            temperature:     Sampling temperature (default 0.3).
+            max_tokens:      Maximum tokens in the response.
+            response_format: Optional response format (e.g. {"type": "json_object"}).
 
         Returns:
             The raw ChatCompletion response object from whichever model
@@ -208,6 +210,7 @@ class OpenRouterClient:
             tool_choice=tool_choice,
             temperature=temperature,
             max_tokens=max_tokens,
+            response_format=response_format,
         )
 
     # ------------------------------------------------------------------
@@ -222,6 +225,7 @@ class OpenRouterClient:
         tool_choice: str | dict,
         temperature: float,
         max_tokens: int,
+        response_format: dict | None = None,
     ) -> dict:
         kwargs: dict = {
             "model": model,
@@ -232,6 +236,8 @@ class OpenRouterClient:
         if tools:
             kwargs["tools"] = tools
             kwargs["tool_choice"] = tool_choice
+        if response_format:
+            kwargs["response_format"] = response_format
         return kwargs
 
     def _call_once(self, kwargs: dict) -> object:
@@ -246,6 +252,7 @@ class OpenRouterClient:
         tool_choice: str | dict,
         temperature: float,
         max_tokens: int,
+        response_format: dict | None = None,
     ) -> object:
         """
         Try the primary model; fall back to the fallback model on retryable
@@ -260,6 +267,7 @@ class OpenRouterClient:
             tool_choice=tool_choice,
             temperature=temperature,
             max_tokens=max_tokens,
+            response_format=response_format,
         )
 
         # --- Primary attempt ---
@@ -307,6 +315,7 @@ class OpenRouterClient:
             tool_choice=tool_choice,
             temperature=temperature,
             max_tokens=max_tokens,
+            response_format=response_format,
         )
 
         try:

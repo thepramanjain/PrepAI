@@ -66,10 +66,10 @@ export default function Landing({ onNavigate }: LandingProps) {
           question banks.
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-          <Button size="lg" className="px-8 text-base" onClick={() => onNavigate("dashboard")}>
+          <Button size="lg" className="px-8 text-base" onClick={() => onNavigate("register")}>
             Start Practicing Free <ArrowRight size={16} className="ml-1" />
           </Button>
-          <Button size="lg" variant="outline" className="px-8 text-base border-muted-foreground/30 text-foreground" onClick={() => onNavigate("create-interview")}>
+          <Button size="lg" variant="outline" className="px-8 text-base border-muted-foreground/30 text-foreground" onClick={() => onNavigate("login")}>
             Explore Interview Types
           </Button>
         </div>
@@ -140,7 +140,7 @@ export default function Landing({ onNavigate }: LandingProps) {
           <Button
             size="lg"
             className="bg-white text-violet-700 hover:bg-white/90 font-semibold shadow-lg"
-            onClick={() => onNavigate("dashboard")}
+            onClick={() => onNavigate("register")}
           >
             Get started — it's free <ArrowRight size={16} />
           </Button>

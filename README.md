@@ -219,7 +219,20 @@ Determines which tools and workflow should be used for a user's request.
 
 # 🔄 Complete Interview Flow
 
-### 1. Create Interview
+### 1. Authentication & Onboarding
+```
+Candidate
+   ↓
+Register / Login
+   ↓
+Password Verified (bcrypt)
+   ↓
+JWT Token Issued (Bearer)
+   ↓
+Protected Platform Access
+```
+
+### 2. Create Interview
 ```
 User
  ↓
@@ -238,7 +251,7 @@ Optional Resume
 Optional Job Description
 ```
 
-### 2. AI Question Generation
+### 3. AI Question Generation
 ```
 Interview Configuration
           ↓
@@ -257,7 +270,7 @@ Questions can be tailored using:
 - Resume
 - Job description
 
-### 3. Text Interview
+### 4. Text Interview
 ```
 AI Question
      ↓
@@ -272,7 +285,7 @@ Follow-up OR Next Question
 Repeat
 ```
 
-### 4. Voice Interview
+### 5. Voice Interview
 ```
 Candidate
     │
@@ -293,7 +306,7 @@ AI Voice Response
 ```
 The voice interview maintains the same underlying interview state as the text interview.
 
-### 5. AI Evaluation
+### 6. AI Evaluation
 After the interview:
 ```
 Questions + Answers

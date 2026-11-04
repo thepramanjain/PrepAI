@@ -160,10 +160,10 @@ export default function Navbar({ currentScreen, onNavigate }: NavbarProps) {
             </>
           ) : (
             <>
-              <Button variant="ghost" size="sm" onClick={() => onNavigate("dashboard")}>
+              <Button variant="ghost" size="sm" onClick={() => onNavigate("login")}>
                 Sign in
               </Button>
-              <Button size="sm" onClick={() => onNavigate("create-interview")}>
+              <Button size="sm" onClick={() => onNavigate("register")}>
                 <Sparkles size={13} /> Start Practice
               </Button>
             </>

@@ -244,6 +244,16 @@ export default function InterviewResult({ onNavigate, dark = false, interviewId 
         const intDoc = await interviewApi.getInterview(currentId);
         if (active) setInterview(intDoc);
 
+        // Ensure interview is marked completed when reviewing results
+        if (intDoc && intDoc.status !== "completed") {
+          try {
+            const completedDoc = await interviewApi.completeInterview(currentId);
+            if (active) setInterview(completedDoc);
+          } catch (_) {
+            // Backend evaluator also validates and auto-completes if all primary questions answered
+          }
+        }
+
         // Try to fetch feedback; if 404, trigger evaluation
         try {
           const fb = await getFeedback(currentId);

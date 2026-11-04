@@ -147,6 +147,7 @@ def evaluate_interview(
             break
         except Exception as e:
             error_msg = str(e)
+            print(f"[AI Evaluation] Gemini attempt with '{candidate_model}' failed: {error_msg}")
             is_recoverable = (
                 "503" in error_msg
                 or "404" in error_msg
@@ -157,12 +158,11 @@ def evaluate_interview(
                 or "ConnectError" in error_msg
                 or "timed out" in error_msg.lower()
             )
-            if is_recoverable and candidate_model != models_to_try[-1]:
-                continue
 
-            # Fall back to OpenRouter if Gemini fails
+            # Fall back to OpenRouter immediately on provider failure
             or_client = _get_openrouter_client()
             if or_client and or_client.is_configured():
+                print("[AI Evaluation] Provider failure on Gemini: attempting OpenRouter fallback...")
                 try:
                     or_resp = or_client.chat_completion(
                         messages=[
@@ -182,9 +182,14 @@ def evaluate_interview(
                             clean_content = re.sub(r"^```(?:json)?\s*", "", clean_content, flags=re.IGNORECASE)
                             clean_content = re.sub(r"\s*```$", "", clean_content).strip()
                         raw_data = json.loads(clean_content)
-                        return GeneratedEvaluation(**raw_data)
-                except Exception:
-                    pass
+                        evaluation = GeneratedEvaluation(**raw_data)
+                        print(f"[AI Evaluation] OpenRouter evaluation succeeded with overall score: {evaluation.overall_score}")
+                        return evaluation
+                except Exception as or_err:
+                    print(f"[AI Evaluation] OpenRouter fallback failed: {or_err}")
+
+            if is_recoverable and candidate_model != models_to_try[-1]:
+                continue
 
             if "401" in error_msg or "403" in error_msg or "UNAUTHENTICATED" in error_msg or "PERMISSION_DENIED" in error_msg or "API key not valid" in error_msg:
                 raise RuntimeError("AI Service authentication failed. Please check that GEMINI_API_KEY is valid.") from e

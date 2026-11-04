@@ -68,38 +68,81 @@ def create_or_update_feedback(interview_id: str, user_id: str) -> Dict[str, Any]
         HTTPException 503: AI Service unavailable.
         HTTPException 422: AI returned invalid or unvalidatable output.
     """
+    print(f"[AI Evaluation] Evaluation started for interview {interview_id}")
     # 1. Retrieve and verify interview
     interview = _get_interview_and_verify_ownership(interview_id, user_id)
-
-    if interview.get("status") != Status.completed:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Interview must be completed before evaluation."
-        )
-
     interview_obj_id = interview["_id"]
     user_obj_id = ObjectId(user_id)
 
-    # 2. Fetch questions
+    # Check responses first
+    responses = list(responses_collection.find({
+        "interview_id": interview_obj_id,
+        "user_id": user_obj_id,
+    }))
+
+    if interview.get("status") != Status.completed:
+        # Check if candidate has completed all primary questions
+        primary_qs = list(questions_collection.find({
+            "interview_id": interview_obj_id,
+            "question_type": {"$ne": "follow_up"},
+        }))
+        answered_q_ids = {r["question_id"] for r in responses}
+        all_primary_answered = bool(primary_qs) and all(q["_id"] in answered_q_ids for q in primary_qs)
+        
+        if all_primary_answered:
+            # Clean up any trailing unanswered follow-up question
+            questions_collection.delete_many({
+                "interview_id": interview_obj_id,
+                "question_type": "follow_up",
+                "_id": {"$nin": list(answered_q_ids)},
+            })
+            now = utc_now()
+            interviews_collection.update_one(
+                {"_id": interview_obj_id},
+                {"$set": {
+                    "status": Status.completed,
+                    "completed_at": now,
+                    "updated_at": now,
+                    "current_question_id": None,
+                    "current_question_number": None,
+                }}
+            )
+            interview["status"] = Status.completed
+            print(f"[AI Evaluation] Interview {interview_id} auto-completed: all {len(primary_qs)} primary questions answered.")
+        else:
+            print(f"[AI Evaluation] Validation failure for interview {interview_id}: status='{interview.get('status')}', answered={len(answered_q_ids)}/{len(primary_qs)} primary questions.")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Interview must be completed before evaluation."
+            )
+
+    # 2. Fetch questions that were answered
+    answered_q_ids = {r["question_id"] for r in responses}
+    # Clean up any trailing unanswered follow-up question
+    questions_collection.delete_many({
+        "interview_id": interview_obj_id,
+        "question_type": "follow_up",
+        "_id": {"$nin": list(answered_q_ids)},
+    })
     questions = list(
         questions_collection.find({"interview_id": interview_obj_id}).sort("question_number", 1)
     )
     if not questions:
+        print(f"[AI Evaluation] Validation failure for interview {interview_id}: No questions found.")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Interview has no questions to evaluate."
         )
 
-    # 3. Fetch responses
-    responses = list(responses_collection.find({
-        "interview_id": interview_obj_id,
-        "user_id": user_obj_id,
-    }))
+    # 3. Verify responses exist
     if not responses:
+        print(f"[AI Evaluation] Validation failure for interview {interview_id}: No responses submitted.")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Interview has no submitted responses to evaluate."
         )
+
+    print(f"[AI Evaluation] Answer count: {len(responses)} submitted answers for {len(questions)} questions in interview {interview_id}")
 
     # 4. Optionally fetch resume text
     resume_text = _get_resume_text(interview, user_id)
@@ -164,6 +207,8 @@ def create_or_update_feedback(interview_id: str, user_id: str) -> Dict[str, Any]
         result = feedback_collection.insert_one(feedback_doc)
         stored = feedback_collection.find_one({"_id": result.inserted_id})
 
+    print(f"[AI Evaluation] Database save: Evaluation feedback saved in MongoDB for interview {interview_id}")
+    print(f"[AI Evaluation] Successful completion: Overall score {evaluation.overall_score} for interview {interview_id}")
     return stored
 
 

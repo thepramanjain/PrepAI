@@ -483,14 +483,21 @@ def engine_next_question(interview_id: str, user_id: str) -> dict:
         )
 
     # --- Follow-up logic ---
-    # Only try follow-up if the current question is primary
+    # Only try follow-up if current question is primary AND there are subsequent primary questions
     if current_question.get("question_type", "primary") == "primary":
-        follow_up_doc = follow_up_service.generate_follow_up_if_needed(
-            interview=interview,
-            current_question=current_question,
-            candidate_answer=answer_doc["answer"],
-            user_id=user_id,
-        )
+        has_more_primary = bool(questions_collection.find_one({
+            "interview_id": interview["_id"],
+            "question_type": {"$ne": "follow_up"},
+            "question_number": {"$gt": current_question.get("question_number", 0)},
+        }))
+        follow_up_doc = None
+        if has_more_primary:
+            follow_up_doc = follow_up_service.generate_follow_up_if_needed(
+                interview=interview,
+                current_question=current_question,
+                candidate_answer=answer_doc["answer"],
+                user_id=user_id,
+            )
 
         if follow_up_doc:
             # Set follow-up as the current question

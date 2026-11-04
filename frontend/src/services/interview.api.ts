@@ -92,6 +92,11 @@ export async function getInterview(id: string): Promise<InterviewDoc> {
   return data;
 }
 
+export async function completeInterview(id: string): Promise<InterviewDoc> {
+  const { data } = await api.post<InterviewDoc>(`/api/interviews/${id}/complete`);
+  return data;
+}
+
 export async function getQuestions(interviewId: string): Promise<QuestionDoc[]> {
   const { data } = await api.get<{ items: QuestionDoc[] } | QuestionDoc[]>(
     `/api/interviews/${interviewId}/questions`,

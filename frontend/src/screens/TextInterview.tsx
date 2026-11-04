@@ -179,6 +179,9 @@ export default function TextInterview({ onNavigate, interviewId }: TextInterview
         (!(next as any).question && !next.current_question);
 
       if (isCompleted) {
+        try {
+          await interviewApi.completeInterview(activeInterviewId.current);
+        } catch (_) {}
         setFinalScore(next.final_score ?? null);
         setPhase("completed");
         return;
